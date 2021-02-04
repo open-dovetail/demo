@@ -29,6 +29,8 @@ func TestMain(m *testing.M) {
 
 func TestConfig(t *testing.T) {
 	fmt.Println("TestConfig")
+
+	// verify carriers
 	assert.Equal(t, 4, len(Carriers["SLS"].Offices), "SLS should have 4 offices")
 	assert.Equal(t, "SLS", Carriers["SLS"].Name, "SLS should have a name 'SLS'")
 	assert.Equal(t, 4, len(Carriers["NLS"].Offices), "NLS should have 4 offices")
@@ -37,6 +39,14 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, -104.9903, Carriers["SLS"].Offices["DEN"].Longitude, "DEN's longitude should be -104.9903")
 	assert.Equal(t, "CO", Carriers["SLS"].Offices["DEN"].State, "DEN's state should be 'CO'")
 	assert.Equal(t, "DEN", Hubs["NLS"].Iata, "NLS hub should be 'DEN'")
+
+	// verify threshods
+	assert.Equal(t, 4, len(Thresholds), "config should have specified 4 products")
+	thr := Thresholds["PfizerVaccine"]
+	assert.Equal(t, "PfizerVaccine", thr.Name, "Threshold name should match the product name")
+	assert.Equal(t, "P", thr.ItemType, "PfizerVaccine should be considered perishable")
+	assert.Equal(t, float64(-80), thr.MinValue, "PfizerVaccine should be kept above -80 C")
+	assert.Equal(t, float64(-60), thr.MaxValue, "PfizerVaccine should be kept below -60 C")
 }
 
 func TestRandomAddress(t *testing.T) {
@@ -68,4 +78,23 @@ func TestArrivalTime(t *testing.T) {
 	}
 	arrival := arrivalTime("16:00", from, to)
 	assert.Equal(t, "22:07", arrival, "local arrival time should be 22:07")
+}
+
+func TestCreateRoutes(t *testing.T) {
+	fmt.Println("TestCreateRoutes")
+	carrier := Carriers["SLS"]
+	createRoutes(carrier)
+	hub := carrier.Offices["DEN"]
+	assert.Equal(t, 4, len(hub.Routes), "Hub should have 4 routes")
+	route := hub.Routes["SLS001"]
+	assert.Equal(t, "A", route.RouteType, "first route type should be 'A'")
+	assert.Equal(t, "V", route.Vehicle.ConsType, "vehicle container type should be 'V'")
+	assert.Equal(t, 2, len(route.Vehicle.Embedded), "plane should contain 2 ULDs")
+	for _, uld := range route.Vehicle.Embedded {
+		assert.Equal(t, "U", uld.ConsType, "airplain should contain ULDs")
+		assert.Equal(t, 1, len(uld.Embedded), "ULD should contain 1 freezer")
+		for _, c := range uld.Embedded {
+			assert.Equal(t, "F", c.ConsType, "ULD should contain freezer")
+		}
+	}
 }

@@ -21,6 +21,9 @@ var Carriers map[string]*Carrier
 // Hubs caches carrier's hub offices
 var Hubs map[string]*Office
 
+// Thresholds specifies environment requirements for transporting specified products
+var Thresholds map[string]*Threshold
+
 // Carrier defines a carrier and its office locations
 type Carrier struct {
 	Name        string             `json:"name"`
@@ -60,6 +63,42 @@ type Route struct {
 	SchdArrivalTime string
 	From            *Office
 	To              *Office
+	Vehicle         *Container
+}
+
+// Container describes container or vehicle
+type Container struct {
+	UID      string
+	ConsType string
+	Embedded map[string]*Container
+}
+
+// Threshold specifies requirements for transporting hazmat
+type Threshold struct {
+	Name     string  `json:"name"`
+	ItemType string  `json:"handlingCd"`
+	MinValue float64 `json:"minValue"`
+	MaxValue float64 `json:"maxValue"`
+	UOM      string  `json:"uom"`
+}
+
+// DemoConfig defines configuration data for the demo
+type DemoConfig struct {
+	Carriers map[string]*Carrier   `json:"carriers"`
+	Products map[string]*Threshold `json:"products"`
+}
+
+// Initialize carrier's office, routes and containers
+func Initialize(configFile string) error {
+	if err := readConfig(configFile); err != nil {
+		return err
+	}
+
+	for _, carrier := range Carriers {
+		createRoutes(carrier)
+	}
+
+	return nil
 }
 
 // read configure file to populate Carriers for test
@@ -69,11 +108,14 @@ func readConfig(configFile string) error {
 		return err
 	}
 	rand.Seed(time.Now().UnixNano())
-	Carriers = make(map[string]*Carrier)
-	err = json.Unmarshal(data, &Carriers)
+	demoConfig := DemoConfig{}
+	err = json.Unmarshal(data, &demoConfig)
 	if err != nil {
 		return err
 	}
+
+	// initialize carriers
+	Carriers = demoConfig.Carriers
 	Hubs = make(map[string]*Office)
 	for n, c := range Carriers {
 		c.Name = n
@@ -96,6 +138,18 @@ func readConfig(configFile string) error {
 			}
 		}
 	}
+
+	// initialize thresholds
+	Thresholds = demoConfig.Products
+	for n, p := range Thresholds {
+		p.Name = n
+		if p.ItemType == "P" {
+			p.UOM = "C"
+		} else if p.ItemType == "D" {
+			p.UOM = "kg"
+		}
+	}
+
 	return nil
 }
 
@@ -169,10 +223,12 @@ func arrivalTime(depart string, from, to *Office) string {
 
 func createRoutes(carrier *Carrier) {
 	hub := Hubs[carrier.Name]
+	hub.Routes = make(map[string]*Route)
 	seq := 0
 	for _, v := range carrier.Offices {
-		v.Routes = make(map[string]*Route)
 		if !v.IsHub {
+			v.Routes = make(map[string]*Route)
+
 			// outbound flight from hub
 			seq++
 			rn := fmt.Sprintf("%s%03d", carrier.Name, seq)
@@ -184,7 +240,8 @@ func createRoutes(carrier *Carrier) {
 				From:            hub,
 				To:              v,
 			}
-			v.Routes[rn] = r
+			hub.Routes[rn] = r
+			assignContainers(r)
 
 			// inbound flight to hub
 			seq++
@@ -198,6 +255,7 @@ func createRoutes(carrier *Carrier) {
 				To:              hub,
 			}
 			v.Routes[rn] = r
+			assignContainers(r)
 		}
 
 		// local ground truck route
@@ -212,5 +270,51 @@ func createRoutes(carrier *Carrier) {
 			To:              v,
 		}
 		v.Routes[rn] = r
+		assignContainers(r)
 	}
+}
+
+// create initial containers for a route, return the vehicle containeer
+func assignContainers(route *Route) {
+	seq := 0
+	vn := fmt.Sprintf("%s%03d", route.RouteNbr, seq)
+	vehicle := &Container{
+		UID:      vn,
+		ConsType: "V",
+		Embedded: map[string]*Container{},
+	}
+	if route.RouteType == "A" {
+		for i := 0; i < 2; i++ {
+			// add ULD to airplane
+			seq++
+			un := fmt.Sprintf("%s%03d", route.RouteNbr, seq)
+			uld := &Container{
+				UID:      un,
+				ConsType: "U",
+				Embedded: map[string]*Container{},
+			}
+			vehicle.Embedded[un] = uld
+
+			// add freezer to ULD
+			seq++
+			fn := fmt.Sprintf("%s%03d", route.RouteNbr, seq)
+			fc := &Container{
+				UID:      fn,
+				ConsType: "F",
+			}
+			uld.Embedded[fn] = fc
+		}
+	} else {
+		// add freezer to truck
+		seq++
+		fn := fmt.Sprintf("%s%03d", route.RouteNbr, seq)
+		fc := &Container{
+			UID:      fn,
+			ConsType: "F",
+		}
+		vehicle.Embedded[fn] = fc
+	}
+
+	// assign vehicle to route
+	route.Vehicle = vehicle
 }
