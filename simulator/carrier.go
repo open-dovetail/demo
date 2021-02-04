@@ -24,6 +24,9 @@ var Hubs map[string]*Office
 // Thresholds specifies environment requirements for transporting specified products
 var Thresholds map[string]*Threshold
 
+// GraphDBConfig specifies connection of graph DB for package tracking
+var GraphDBConfig *DBConfig
+
 // Carrier defines a carrier and its office locations
 type Carrier struct {
 	Name        string             `json:"name"`
@@ -82,10 +85,18 @@ type Threshold struct {
 	UOM      string  `json:"uom"`
 }
 
+// DBConfig configures connection of graph DB
+type DBConfig struct {
+	URL    string `json:"url"`
+	User   string `json:"user"`
+	Passwd string `json:"passwd"`
+}
+
 // DemoConfig defines configuration data for the demo
 type DemoConfig struct {
 	Carriers map[string]*Carrier   `json:"carriers"`
 	Products map[string]*Threshold `json:"products"`
+	GraphDB  *DBConfig             `json:"graphdb"`
 }
 
 // Initialize carrier's office, routes and containers
@@ -113,6 +124,9 @@ func readConfig(configFile string) error {
 	if err != nil {
 		return err
 	}
+
+	// set graphdb config
+	GraphDBConfig = demoConfig.GraphDB
 
 	// initialize carriers
 	Carriers = demoConfig.Carriers

@@ -47,6 +47,11 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "P", thr.ItemType, "PfizerVaccine should be considered perishable")
 	assert.Equal(t, float64(-80), thr.MinValue, "PfizerVaccine should be kept above -80 C")
 	assert.Equal(t, float64(-60), thr.MaxValue, "PfizerVaccine should be kept below -60 C")
+
+	// verify graph DB connection parameters
+	assert.Equal(t, "tcp: //127.0.0.1:8222/{dbName=shipdb}", GraphDBConfig.URL, "GraphDB should be configured to shipdb")
+	assert.Equal(t, "scott", GraphDBConfig.User, "graphdb user should be configured as 'scott'")
+	assert.Equal(t, "scott", GraphDBConfig.Passwd, "graphdb password should be configured as 'scott'")
 }
 
 func TestRandomAddress(t *testing.T) {

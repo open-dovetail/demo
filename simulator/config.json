@@ -81,5 +81,10 @@
             "maxValue": 4,
             "minValue": 1
         }
+    },
+    "graphdb": {
+        "url": "tcp: //127.0.0.1:8222/{dbName=shipdb}",
+        "user": "scott",
+        "passwd": "scott"
     }
 }
