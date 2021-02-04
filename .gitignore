@@ -1,0 +1,6 @@
+/**/go.sum
+/**/.DS_Store
+/**/keystore
+graphdb/data
+graphdb/log
+lib
