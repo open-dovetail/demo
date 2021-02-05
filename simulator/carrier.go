@@ -38,6 +38,7 @@ type Carrier struct {
 type Office struct {
 	Iata        string  `json:"iata"`
 	IsHub       bool    `json:"hub"`
+	Carrier     string  `json:"carrier"`
 	Description string  `json:"description"`
 	GMTOffset   string  `json:"gmtOffset"`
 	Longitude   float64 `json:"longitude"`
@@ -135,6 +136,7 @@ func readConfig(configFile string) error {
 		c.Name = n
 		for i, v := range c.Offices {
 			v.Iata = i
+			v.Carrier = n
 			if len(v.Description) > 0 {
 				tokens := strings.Split(v.Description, ",")
 				if len(tokens) > 1 {

@@ -49,7 +49,7 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, float64(-60), thr.MaxValue, "PfizerVaccine should be kept below -60 C")
 
 	// verify graph DB connection parameters
-	assert.Equal(t, "tcp: //127.0.0.1:8222/{dbName=shipdb}", GraphDBConfig.URL, "GraphDB should be configured to shipdb")
+	assert.Equal(t, "tcp://127.0.0.1:8222/{dbName=shipdb}", GraphDBConfig.URL, "GraphDB should be configured to shipdb")
 	assert.Equal(t, "scott", GraphDBConfig.User, "graphdb user should be configured as 'scott'")
 	assert.Equal(t, "scott", GraphDBConfig.Passwd, "graphdb password should be configured as 'scott'")
 }
@@ -91,8 +91,14 @@ func TestCreateRoutes(t *testing.T) {
 	createRoutes(carrier)
 	hub := carrier.Offices["DEN"]
 	assert.Equal(t, 4, len(hub.Routes), "Hub should have 4 routes")
-	route := hub.Routes["SLS001"]
-	assert.Equal(t, "A", route.RouteType, "first route type should be 'A'")
+	// find an airplane route
+	var route *Route
+	for _, r := range hub.Routes {
+		if r.RouteType == "A" {
+			route = r
+			break
+		}
+	}
 	assert.Equal(t, "V", route.Vehicle.ConsType, "vehicle container type should be 'V'")
 	assert.Equal(t, 2, len(route.Vehicle.Embedded), "plane should contain 2 ULDs")
 	for _, uld := range route.Vehicle.Embedded {
