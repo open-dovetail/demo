@@ -87,6 +87,23 @@ func (g *GraphManager) Disconnect() tgdb.TGError {
 	return g.conn.Disconnect()
 }
 
+func createThreshold(graph *GraphManager, threshold *Threshold) (tgdb.TGNode, tgdb.TGError) {
+	node, err := graph.CreateNode("Threshold")
+	if err != nil {
+		return nil, err
+	}
+	node.SetOrCreateAttribute("name", threshold.Name)
+	node.SetOrCreateAttribute("type", threshold.ItemType)
+	node.SetOrCreateAttribute("minValue", threshold.MinValue)
+	node.SetOrCreateAttribute("maxValue", threshold.MaxValue)
+	node.SetOrCreateAttribute("uom", threshold.UOM)
+
+	if err = graph.InsertEntity(node); err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
 func createCarrier(graph *GraphManager, carrier *Carrier) (tgdb.TGNode, tgdb.TGError) {
 	node, err := graph.CreateNode("Carrier")
 	if err != nil {
@@ -117,29 +134,315 @@ func createOffice(graph *GraphManager, office *Office) (tgdb.TGNode, tgdb.TGErro
 	return node, nil
 }
 
+func createRoute(graph *GraphManager, route *Route) (tgdb.TGNode, tgdb.TGError) {
+	fmt.Println("create route", route.RouteNbr)
+	node, err := graph.CreateNode("Route")
+	if err != nil {
+		return nil, err
+	}
+	node.SetOrCreateAttribute("routeNbr", route.RouteNbr)
+	node.SetOrCreateAttribute("type", route.RouteType)
+	node.SetOrCreateAttribute("fromIata", route.From.Iata)
+	node.SetOrCreateAttribute("toIata", route.To.Iata)
+	node.SetOrCreateAttribute("schdDepartTime", route.SchdDepartTime)
+	node.SetOrCreateAttribute("schdArrivalTime", route.SchdArrivalTime)
+	if err = graph.InsertEntity(node); err != nil {
+		return nil, err
+	}
+	fmt.Println("inserted route", node.GetAttribute("routeNbr").GetValue())
+	return node, nil
+}
+
+func createContainer(graph *GraphManager, cons *Container) (tgdb.TGNode, tgdb.TGError) {
+	fmt.Println("create container", cons.UID)
+	node, err := graph.CreateNode("Container")
+	if err != nil {
+		return nil, err
+	}
+	node.SetOrCreateAttribute("uid", cons.UID)
+	node.SetOrCreateAttribute("type", cons.ConsType)
+	node.SetOrCreateAttribute("monitor", cons.Product)
+	if err = graph.InsertEntity(node); err != nil {
+		return nil, err
+	}
+	fmt.Println("inserted container", node.GetAttribute("uid").GetValue())
+	return node, nil
+}
+
+func createEdgeOperates(graph *GraphManager, carrier, office tgdb.TGNode) error {
+	operates, err := graph.CreateEdge("operates", carrier, office)
+	if err != nil {
+		return err
+	}
+	if err := graph.InsertEntity(operates); err != nil {
+		return err
+	}
+	_, err = graph.Commit()
+	fmt.Println("committed operates", err)
+	return err
+}
+
+func createEdgeSchedules(graph *GraphManager, carrier, route tgdb.TGNode) error {
+	schedules, err := graph.CreateEdge("schedules", carrier, route)
+	if err != nil {
+		return err
+	}
+	if err := graph.InsertEntity(schedules); err != nil {
+		return err
+	}
+	_, err = graph.Commit()
+	fmt.Println("committed schedules", err)
+	return err
+}
+
+func createEdgeDeparts(graph *GraphManager, route, office tgdb.TGNode) error {
+	fmt.Println("create departs", route.GetAttribute("routeNbr").GetValue(), office.GetAttribute("iata").GetValue())
+	departs, err := graph.CreateEdge("departs", route, office)
+	if err != nil {
+		return err
+	}
+	eventTime := route.GetAttribute("schdDepartTime").GetValue().(string)
+	gmtOffset := office.GetAttribute("gmtOffset").GetValue().(string)
+	tm := randomTimestamp(eventTime, gmtOffset, 5)
+	departs.SetOrCreateAttribute("eventTimestamp", tm)
+	if err := graph.InsertEntity(departs); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	fmt.Println("committed departs", err)
+	return err
+}
+
+func createEdgeArrives(graph *GraphManager, route, office tgdb.TGNode) error {
+	arrives, err := graph.CreateEdge("arrives", route, office)
+	if err != nil {
+		return err
+	}
+	eventTime := route.GetAttribute("schdArrivalTime").GetValue().(string)
+	gmtOffset := office.GetAttribute("gmtOffset").GetValue().(string)
+	tm := randomTimestamp(eventTime, gmtOffset, 5)
+	arrives.SetOrCreateAttribute("eventTimestamp", tm)
+	if err := graph.InsertEntity(arrives); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	fmt.Println("committed arrives", err)
+	return err
+}
+
+func createEdgeBuilds(graph *GraphManager, office, container tgdb.TGNode, eventTime int64) error {
+	builds, err := graph.CreateEdge("builds", office, container)
+	if err != nil {
+		return err
+	}
+	builds.SetOrCreateAttribute("eventTimestamp", eventTime)
+	if err := graph.InsertEntity(builds); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	fmt.Println("committed builds", err)
+	return err
+}
+
+func createEdgeAssigned(graph *GraphManager, container, route tgdb.TGNode, eventTime int64) error {
+	assigned, err := graph.CreateEdge("assigned", container, route)
+	if err != nil {
+		return err
+	}
+	assigned.SetOrCreateAttribute("eventTimestamp", eventTime)
+	if err := graph.InsertEntity(assigned); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	fmt.Println("committed assigned", err)
+	return err
+}
+
+func createEdgeContains(graph *GraphManager, parent, child tgdb.TGNode, inTime, outTime int64, childType string) error {
+	contains, err := graph.CreateEdge("contains", parent, child)
+	if err != nil {
+		return err
+	}
+	contains.SetOrCreateAttribute("eventTimestamp", inTime)
+	contains.SetOrCreateAttribute("outTimestamp", outTime)
+	contains.SetOrCreateAttribute("childType", childType)
+	if err := graph.InsertEntity(contains); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	fmt.Println("committed contains", err)
+	return err
+}
+
+var carrierNodes map[string]tgdb.TGNode
+var officeNodes map[string]tgdb.TGNode
+var routeNodes map[string]tgdb.TGNode
+
 // InitializeGraph inserts carrier nodes and edges into TGDB
 func InitializeGraph(graph *GraphManager) error {
+	carrierNodes = make(map[string]tgdb.TGNode)
+	officeNodes = make(map[string]tgdb.TGNode)
+
+	// create thresholds
+	for _, th := range Thresholds {
+		if _, err := createThreshold(graph, th); err != nil {
+			return err
+		}
+	}
+
+	// create carrier and offices
 	for _, c := range Carriers {
 		carrier, err := createCarrier(graph, c)
 		if err != nil {
-			return nil
+			return err
 		}
+		// cache carrier node for further processing
+		carrierNodes[c.Name] = carrier
 		for _, v := range c.Offices {
 			office, err := createOffice(graph, v)
 			if err != nil {
-				return nil
+				return err
 			}
-			operates, err := graph.CreateEdge("operates", carrier, office)
-			if err := graph.InsertEntity(operates); err != nil {
-				return nil
+			if err := createEdgeOperates(graph, carrier, office); err != nil {
+				return err
 			}
-			// Note: must commit here. it does not work to commit after the loop
-			if _, err := graph.Commit(); err != nil {
+			// cache office node for further processing
+			officeNodes[v.Carrier+":"+v.Iata] = office
+		}
+	}
+	fmt.Println("created offices", len(officeNodes))
+
+	// create routes
+	routeNodes = make(map[string]tgdb.TGNode)
+	for _, c := range Carriers {
+		for _, v := range c.Offices {
+			fmt.Println("init routes for", c.Name, v.Iata)
+			if err := initializeRoutes(graph, v); err != nil {
 				return err
 			}
 		}
 	}
-	//	_, err := graph.Commit()
+
+	// create containers
+	for _, c := range Carriers {
+		for _, v := range c.Offices {
+			for _, r := range v.Routes {
+				// create containers for hub inbound routes
+				if !v.IsHub || r.RouteType == "G" {
+					fmt.Println("init container for route ", c.Name, v.Iata, r.RouteNbr, r.To.Iata)
+					if err := initializeContainers(graph, r); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// create routes and containers for a specified office
+func initializeRoutes(graph *GraphManager, office *Office) error {
+	for _, r := range office.Routes {
+		fmt.Println("init route", r.RouteNbr)
+		route, err := createRoute(graph, r)
+		if err != nil {
+			return err
+		}
+		// create departs for today
+		from := officeNodes[office.Carrier+":"+r.From.Iata]
+		if err := createEdgeDeparts(graph, route, from); err != nil {
+			return err
+		}
+		// create arrival for today
+		to := officeNodes[office.Carrier+":"+r.To.Iata]
+		if err := createEdgeArrives(graph, route, to); err != nil {
+			return err
+		}
+		// create shedules rel from carrier to route
+		carrier := carrierNodes[office.Carrier]
+		if err := createEdgeSchedules(graph, carrier, route); err != nil {
+			return err
+		}
+		// cache route node for further processing
+		routeNodes[office.Carrier+":"+r.From.Iata+":"+r.To.Iata] = route
+	}
+	return nil
+}
+
+// context for building embedded containers
+type containerContext struct {
+	inTime     int64
+	outTime    int64
+	hubInTime  int64
+	hubOutTime int64
+}
+
+// create containers on a specified route, return vessel container
+func initializeContainers(graph *GraphManager, route *Route) error {
+	v := route.Vehicle
+	vessel, err := createContainer(graph, v)
+	if err != nil {
+		return err
+	}
+	// set build and route assignment time to 1 hour before departure
+	tm := randomTimestamp(route.SchdDepartTime, route.From.GMTOffset, 10) - 3600
+	office := officeNodes[route.From.Carrier+":"+route.From.Iata]
+	if err := createEdgeBuilds(graph, office, vessel, tm); err != nil {
+		return err
+	}
+	toHub := routeNodes[route.From.Carrier+":"+route.From.Iata+":"+route.To.Iata]
+	if err := createEdgeAssigned(graph, vessel, toHub, tm); err != nil {
+		return err
+	}
+	context := &containerContext{
+		inTime:  tm,
+		outTime: randomTimestamp(route.SchdArrivalTime, route.To.GMTOffset, 5),
+	}
+	if route.RouteType == "A" {
+		// assign same vessel to returning flight as well
+		htm := randomTimestamp("00:00", route.To.GMTOffset, 10) - 3600
+		hub := officeNodes[route.From.Carrier+":"+route.To.Iata]
+		if err := createEdgeBuilds(graph, hub, vessel, htm); err != nil {
+			return err
+		}
+		fromHub := routeNodes[route.From.Carrier+":"+route.To.Iata+":"+route.From.Iata]
+		if err := createEdgeAssigned(graph, vessel, fromHub, htm); err != nil {
+			return err
+		}
+		context.hubInTime = htm
+		context.hubOutTime = htm - context.inTime + context.outTime
+	}
+
+	// set embedded containers
+	return initializeEmbeddedContainers(graph, vessel, v.Embedded, context)
+}
+
+// create embedded containers and relationships from a parent node
+func initializeEmbeddedContainers(graph *GraphManager, parent tgdb.TGNode, embedded map[string]*Container, context *containerContext) error {
+	for _, c := range embedded {
+		child, err := createContainer(graph, c)
+		if err != nil {
+			return err
+		}
+		if err := createEdgeContains(graph, parent, child, context.inTime, context.outTime, "C"); err != nil {
+			return err
+		}
+		if context.hubInTime > 0 {
+			if err := createEdgeContains(graph, parent, child, context.hubInTime, context.hubOutTime, "C"); err != nil {
+				return err
+			}
+		}
+		if len(c.Embedded) > 0 {
+			if err := initializeEmbeddedContainers(graph, child, c.Embedded, context); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

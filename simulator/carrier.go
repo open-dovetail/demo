@@ -75,6 +75,7 @@ type Container struct {
 	UID      string
 	ConsType string
 	Embedded map[string]*Container
+	Product  string
 }
 
 // Threshold specifies requirements for transporting hazmat
@@ -129,6 +130,17 @@ func readConfig(configFile string) error {
 	// set graphdb config
 	GraphDBConfig = demoConfig.GraphDB
 
+	// initialize thresholds
+	Thresholds = demoConfig.Products
+	for n, p := range Thresholds {
+		p.Name = n
+		if p.ItemType == "P" {
+			p.UOM = "C"
+		} else if p.ItemType == "D" {
+			p.UOM = "kg"
+		}
+	}
+
 	// initialize carriers
 	Carriers = demoConfig.Carriers
 	Hubs = make(map[string]*Office)
@@ -152,17 +164,6 @@ func readConfig(configFile string) error {
 			if v.IsHub {
 				Hubs[n] = v
 			}
-		}
-	}
-
-	// initialize thresholds
-	Thresholds = demoConfig.Products
-	for n, p := range Thresholds {
-		p.Name = n
-		if p.ItemType == "P" {
-			p.UOM = "C"
-		} else if p.ItemType == "D" {
-			p.UOM = "kg"
 		}
 	}
 
@@ -237,6 +238,22 @@ func arrivalTime(depart string, from, to *Office) string {
 	return fmt.Sprintf("%02d:%02d", t.Hour(), t.Minute())
 }
 
+// generate random timestamp around event time HH:mm within interval of the span minutes
+// returned value is seconds since 1970-01-01 00:00:00 UTC
+func randomTimestamp(eventTime, gmtOffset string, spanMinutes float64) int64 {
+	// construct time at specified event HH:mm and GMT offset
+	d := time.Now().Format("2006-01-02")
+	t, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT%s:00%s", d, eventTime, gmtOffset))
+	if err != nil {
+		t = time.Now()
+	}
+
+	// add random time delay and return UNIX milliseconds
+	dm := rand.Float64()*2.0*spanMinutes - spanMinutes
+	t = t.Add(time.Minute * time.Duration(int(dm)))
+	return t.UnixNano() / int64(1000000000)
+}
+
 func createRoutes(carrier *Carrier) {
 	hub := Hubs[carrier.Name]
 	hub.Routes = make(map[string]*Route)
@@ -245,33 +262,34 @@ func createRoutes(carrier *Carrier) {
 		if !v.IsHub {
 			v.Routes = make(map[string]*Route)
 
-			// outbound flight from hub
+			// inbound flight to hub
 			seq++
 			rn := fmt.Sprintf("%s%03d", carrier.Name, seq)
 			r := &Route{
 				RouteNbr:        rn,
 				RouteType:       "A",
 				SchdDepartTime:  "16:00",
-				SchdArrivalTime: arrivalTime("16:00", hub, v),
-				From:            hub,
-				To:              v,
-			}
-			hub.Routes[rn] = r
-			assignContainers(r)
-
-			// inbound flight to hub
-			seq++
-			rn = fmt.Sprintf("%s%03d", carrier.Name, seq)
-			r = &Route{
-				RouteNbr:        rn,
-				RouteType:       "A",
-				SchdDepartTime:  "00:00",
 				SchdArrivalTime: arrivalTime("16:00", v, hub),
 				From:            v,
 				To:              hub,
 			}
 			v.Routes[rn] = r
 			assignContainers(r)
+
+			// outbound flight from hub
+			seq++
+			hrn := fmt.Sprintf("%s%03d", carrier.Name, seq)
+			hr := &Route{
+				RouteNbr:        hrn,
+				RouteType:       "A",
+				SchdDepartTime:  "00:00",
+				SchdArrivalTime: arrivalTime("00:00", hub, v),
+				From:            hub,
+				To:              v,
+			}
+			hub.Routes[hrn] = hr
+			// use same airplane of the inbound route
+			hr.Vehicle = r.Vehicle
 		}
 
 		// local ground truck route
@@ -300,8 +318,8 @@ func assignContainers(route *Route) {
 		Embedded: map[string]*Container{},
 	}
 	if route.RouteType == "A" {
-		for i := 0; i < 2; i++ {
-			// add ULD to airplane
+		for _, th := range Thresholds {
+			// add one ULD per threshold type to airplane
 			seq++
 			un := fmt.Sprintf("%s%03d", route.RouteNbr, seq)
 			uld := &Container{
@@ -317,18 +335,22 @@ func assignContainers(route *Route) {
 			fc := &Container{
 				UID:      fn,
 				ConsType: "F",
+				Product:  th.Name,
 			}
 			uld.Embedded[fn] = fc
 		}
 	} else {
-		// add freezer to truck
-		seq++
-		fn := fmt.Sprintf("%s%03d", route.RouteNbr, seq)
-		fc := &Container{
-			UID:      fn,
-			ConsType: "F",
+		for _, th := range Thresholds {
+			// add one freezer per threshold typ to truck
+			seq++
+			fn := fmt.Sprintf("%s%03d", route.RouteNbr, seq)
+			fc := &Container{
+				UID:      fn,
+				ConsType: "F",
+				Product:  th.Name,
+			}
+			vehicle.Embedded[fn] = fc
 		}
-		vehicle.Embedded[fn] = fc
 	}
 
 	// assign vehicle to route

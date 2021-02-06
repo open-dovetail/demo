@@ -14,6 +14,9 @@ import (
 
 func TestInitializeGraph(t *testing.T) {
 	fmt.Println("TestInitializeGraph")
+
+	err := Initialize(configFile)
+	assert.NoError(t, err, "initialize config should not throw error")
 	graph, err := GetTGConnection()
 	assert.NoError(t, err, "connect to TGDB should not throw error")
 

@@ -6,8 +6,10 @@ package simulator
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -69,6 +71,20 @@ func TestRandomAddress(t *testing.T) {
 	assert.Less(t, delay, 7.0, "local time delay should be less than 7 hours")
 }
 
+func TestRandomTimestamp(t *testing.T) {
+	// get location of the same timezone
+	ref := time.Now().Format("2006-01-02T15:04:05") + "-05:00"
+	nyt, err := time.Parse(time.RFC3339, ref)
+	assert.NoError(t, err)
+
+	// generate random timestamp
+	tm := randomTimestamp("16:30", "-05:00", 5)
+	v := time.Unix(0, tm*int64(1000000000))
+	v = v.In(nyt.Location())
+	diff := math.Abs(float64(v.Minute() - 30))
+	assert.Less(t, diff, float64(5), "random timestamp should be less than 5 minutes")
+}
+
 func TestArrivalTime(t *testing.T) {
 	fmt.Println("TestArrivalTime")
 	to := &Office{
@@ -100,7 +116,7 @@ func TestCreateRoutes(t *testing.T) {
 		}
 	}
 	assert.Equal(t, "V", route.Vehicle.ConsType, "vehicle container type should be 'V'")
-	assert.Equal(t, 2, len(route.Vehicle.Embedded), "plane should contain 2 ULDs")
+	assert.Equal(t, len(Thresholds), len(route.Vehicle.Embedded), "plane's ULD count should match number of thresholds")
 	for _, uld := range route.Vehicle.Embedded {
 		assert.Equal(t, "U", uld.ConsType, "airplain should contain ULDs")
 		assert.Equal(t, 1, len(uld.Embedded), "ULD should contain 1 freezer")
