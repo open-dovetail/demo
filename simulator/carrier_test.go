@@ -56,21 +56,6 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "scott", GraphDBConfig.Passwd, "graphdb password should be configured as 'scott'")
 }
 
-func TestRandomAddress(t *testing.T) {
-	fmt.Println("TestRandomAddress")
-	addr := &Address{
-		StateProvince: "CO",
-	}
-	office := findOfficeByState(addr.StateProvince)
-	assert.NotNil(t, office, "office in CO should not be nil")
-	assert.Equal(t, "DEN", office.Iata, "office IATA should be 'DEN'")
-	addr.Latitude, addr.Longitude = randomGPSLocation(office)
-	// fmt.Printf("office %v address %v\n", office, addr)
-	delay := localDelayHours(addr.Latitude, addr.Longitude, office)
-	// fmt.Printf("time delay %f\n", delay)
-	assert.Less(t, delay, 7.0, "local time delay should be less than 7 hours")
-}
-
 func TestRandomTimestamp(t *testing.T) {
 	// get location of the same timezone
 	ref := time.Now().Format("2006-01-02T15:04:05") + "-05:00"

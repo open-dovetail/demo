@@ -47,18 +47,6 @@ type Office struct {
 	Routes      map[string]*Route
 }
 
-// Address for sender and recipient
-type Address struct {
-	UID           string
-	Street        string
-	City          string
-	StateProvince string
-	PostalCd      string
-	Country       string
-	Longitude     float64
-	Latitude      float64
-}
-
 // Route generated for carriers
 type Route struct {
 	RouteNbr        string
@@ -182,20 +170,6 @@ func findOfficeByState(state string) *Office {
 	return nil
 }
 
-// returns random GPS (latitude, longitude) within the 0.2 degree distance from the office location
-func randomGPSLocation(office *Office) (float64, float64) {
-	dlat := -0.2 + rand.Float64()*0.4
-	dlon := -0.2 + rand.Float64()*0.4
-	return office.Latitude + dlat, office.Longitude + dlon
-}
-
-// calculate local pickup/delivery delay in hours based on distance from office
-func localDelayHours(latitude, longitude float64, office *Office) float64 {
-	dlat := math.Abs(latitude - office.Latitude)
-	dlon := math.Abs(longitude - office.Longitude)
-	return 7.0 * (dlat + dlon) / 0.4
-}
-
 func flightTime(from, to *Office) float64 {
 	dlat := from.Latitude - to.Latitude
 	dlon := from.Longitude - to.Longitude
@@ -248,7 +222,7 @@ func randomTimestamp(eventTime, gmtOffset string, spanMinutes float64) int64 {
 		t = time.Now()
 	}
 
-	// add random time delay and return UNIX milliseconds
+	// add random time delay and return UNIX seconds
 	dm := rand.Float64()*2.0*spanMinutes - spanMinutes
 	t = t.Add(time.Minute * time.Duration(int(dm)))
 	return t.UnixNano() / int64(1000000000)

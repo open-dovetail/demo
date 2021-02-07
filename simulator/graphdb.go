@@ -268,7 +268,10 @@ func createEdgeContains(graph *GraphManager, parent, child tgdb.TGNode, inTime, 
 		return err
 	}
 	contains.SetOrCreateAttribute("eventTimestamp", inTime)
-	contains.SetOrCreateAttribute("outTimestamp", outTime)
+	if childType != "C" {
+		// for demo, outTime is inifinte for containers
+		contains.SetOrCreateAttribute("outTimestamp", outTime)
+	}
 	contains.SetOrCreateAttribute("childType", childType)
 	if err := graph.InsertEntity(contains); err != nil {
 		return err

@@ -1,0 +1,32 @@
+{
+    "handling": "P",
+    "height": 20,
+    "width": 30,
+    "depth": 30,
+    "weight": 7,
+    "dry-ice-weight": 2,
+    "sender": "John",
+    "from": {
+        "street": "E 16th St.",
+        "city": "New York",
+        "state-province": "NY",
+        "postal-code": "11212",
+        "country": "USA"
+    },
+    "recipient": "Jane",
+    "to": {
+        "street": "E Florence Ave",
+        "city": "Los Angeles",
+        "state-province": "CA",
+        "postal-code": "90001",
+        "country": "USA"
+    },
+    "content": {
+        "product": "PfizerVaccine",
+        "description": "COVID-19 vaccine",
+        "producer": "Pfizer",
+        "count": 100,
+        "start-lot-number": "A00001X",
+        "end-lot-number": "A00100X"
+    }
+}
