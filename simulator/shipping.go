@@ -33,7 +33,7 @@ type Address struct {
 	Latitude      float64 `json:"-"`
 }
 
-// Package describes attributes of a package
+// Package describes attributes of a package; json attributes will be stored in QR code
 type Package struct {
 	UID             string   `json:"uid"`
 	QRCode          []byte   `json:"-"`
@@ -65,8 +65,8 @@ type Content struct {
 	EndLotNumber   string `json:"end-lot-number"`
 }
 
-// PackageConfig defines JSON string for a shipment request
-type PackageConfig struct {
+// PackageRequest defines JSON string for a shipment request
+type PackageRequest struct {
 	HandlingCd   string   `json:"handling"`
 	Height       float64  `json:"height"`
 	Width        float64  `json:"width"`
@@ -82,7 +82,7 @@ type PackageConfig struct {
 
 // PrintShippingLabel processes a PackageConfig JSON request
 func PrintShippingLabel(request string) error {
-	req := &PackageConfig{}
+	req := &PackageRequest{}
 	err := json.Unmarshal([]byte(request), req)
 	if err != nil {
 		return err
@@ -91,11 +91,20 @@ func PrintShippingLabel(request string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("process package", pkg)
-	return nil
+	req.Content.UID = pkg.UID + "-1"
+
+	graph, err := GetTGConnection()
+	if err != nil {
+		return err
+	}
+	node, err := upsertPackage(graph, pkg)
+	if err != nil {
+		return err
+	}
+	return addPackageContent(graph, node, req.Content)
 }
 
-func initializePackage(req *PackageConfig) (*Package, error) {
+func initializePackage(req *PackageRequest) (*Package, error) {
 	pkg := &Package{
 		HandlingCd:   req.HandlingCd,
 		Height:       req.Height,
@@ -145,7 +154,7 @@ func initializePackage(req *PackageConfig) (*Package, error) {
 	pkg.EstPickupTime = pickupTime.Format(time.RFC3339)
 	pkg.EstDeliveryTime = deliveryTime.Format(time.RFC3339)
 
-	// generate QR code
+	// generate QR code containing package json doc
 	qrbytes, err := json.Marshal(pkg)
 	if err != nil {
 		fmt.Println("Failed to marshal package data", err)
@@ -166,7 +175,7 @@ func estimatePUDTime(gmtOffset string, delay float64) time.Time {
 	// construct time at specified event HH:mm and GMT offset
 	c := time.Now()
 	d := c.Format("2006-01-02")
-	t, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT%s:00%s", d, "8:00", gmtOffset))
+	t, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT%s:00%s", d, "08:00", gmtOffset))
 	if err != nil {
 		t = time.Now()
 	}
@@ -183,7 +192,7 @@ func estimatePUDTime(gmtOffset string, delay float64) time.Time {
 func randomGPSLocation(office *Office) (float64, float64) {
 	dlat := -0.2 + rand.Float64()*0.4
 	dlon := -0.2 + rand.Float64()*0.4
-	return office.Latitude + dlat, office.Longitude + dlon
+	return math.Round((office.Latitude+dlat)*10000) / 10000, math.Round((office.Longitude+dlon)*10000) / 10000
 }
 
 // calculate local pickup/delivery delay in hours based on distance from office
@@ -200,6 +209,7 @@ func createFnvHash(data interface{}) string {
 	return fmt.Sprintf("%x", h.Sum64())
 }
 
+// create png image for QR code containing specified data, return content of resulting png image
 func createQRCode(data string) ([]byte, error) {
 	qrWriter := qrcode.NewQRCodeWriter()
 	hints := map[gozxing.EncodeHintType]interface{}{

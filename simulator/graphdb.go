@@ -6,13 +6,20 @@ package simulator
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/yxuco/tgdb"
 	"github.com/yxuco/tgdb/factory"
 )
 
+var graph *GraphManager
+
 // GetTGConnection returns a new connection of Graph DB
 func GetTGConnection() (*GraphManager, error) {
+	if graph != nil {
+		return graph, nil
+	}
+
 	cf := factory.GetConnectionFactory()
 	conn, err := cf.CreateAdminConnection(GraphDBConfig.URL, "admin", "admin", nil)
 	if err != nil {
@@ -28,11 +35,12 @@ func GetTGConnection() (*GraphManager, error) {
 		return nil, err
 	}
 
-	return &GraphManager{
+	graph = &GraphManager{
 		conn: conn,
 		gof:  gof,
 		gmd:  gmd,
-	}, nil
+	}
+	return graph, nil
 }
 
 // GraphManager encapsulates standard graph DB operations
@@ -77,6 +85,25 @@ func (g *GraphManager) Query(grem string) ([]interface{}, error) {
 	return rset.ToCollection(), nil
 }
 
+// GetNodeByKey returns a node of specified type and primary key-values
+func (g *GraphManager) GetNodeByKey(nodeType string, keyValues map[string]interface{}) (tgdb.TGNode, tgdb.TGError) {
+	key, err := g.gof.CreateCompositeKey(nodeType)
+	for k, v := range keyValues {
+		key.SetOrCreateAttribute(k, v)
+	}
+
+	node, err := g.conn.GetEntity(key, nil)
+	if err != nil {
+		return nil, err
+	}
+	if node != nil {
+		if result, ok := node.(tgdb.TGNode); ok {
+			return result, nil
+		}
+	}
+	return nil, nil
+}
+
 // Commit commits the current transaction
 func (g *GraphManager) Commit() (tgdb.TGResultSet, tgdb.TGError) {
 	return g.conn.Commit()
@@ -84,10 +111,11 @@ func (g *GraphManager) Commit() (tgdb.TGResultSet, tgdb.TGError) {
 
 // Disconnect disconnects from TGDB server
 func (g *GraphManager) Disconnect() tgdb.TGError {
+	graph = nil
 	return g.conn.Disconnect()
 }
 
-func createThreshold(graph *GraphManager, threshold *Threshold) (tgdb.TGNode, tgdb.TGError) {
+func createThreshold(graph *GraphManager, threshold *Threshold) (tgdb.TGNode, error) {
 	node, err := graph.CreateNode("Threshold")
 	if err != nil {
 		return nil, err
@@ -104,7 +132,7 @@ func createThreshold(graph *GraphManager, threshold *Threshold) (tgdb.TGNode, tg
 	return node, nil
 }
 
-func createCarrier(graph *GraphManager, carrier *Carrier) (tgdb.TGNode, tgdb.TGError) {
+func createCarrier(graph *GraphManager, carrier *Carrier) (tgdb.TGNode, error) {
 	node, err := graph.CreateNode("Carrier")
 	if err != nil {
 		return nil, err
@@ -117,7 +145,7 @@ func createCarrier(graph *GraphManager, carrier *Carrier) (tgdb.TGNode, tgdb.TGE
 	return node, nil
 }
 
-func createOffice(graph *GraphManager, office *Office) (tgdb.TGNode, tgdb.TGError) {
+func createOffice(graph *GraphManager, office *Office) (tgdb.TGNode, error) {
 	node, err := graph.CreateNode("Office")
 	if err != nil {
 		return nil, err
@@ -134,7 +162,7 @@ func createOffice(graph *GraphManager, office *Office) (tgdb.TGNode, tgdb.TGErro
 	return node, nil
 }
 
-func createRoute(graph *GraphManager, route *Route) (tgdb.TGNode, tgdb.TGError) {
+func createRoute(graph *GraphManager, route *Route) (tgdb.TGNode, error) {
 	fmt.Println("create route", route.RouteNbr)
 	node, err := graph.CreateNode("Route")
 	if err != nil {
@@ -153,7 +181,7 @@ func createRoute(graph *GraphManager, route *Route) (tgdb.TGNode, tgdb.TGError) 
 	return node, nil
 }
 
-func createContainer(graph *GraphManager, cons *Container) (tgdb.TGNode, tgdb.TGError) {
+func createContainer(graph *GraphManager, cons *Container) (tgdb.TGNode, error) {
 	fmt.Println("create container", cons.UID)
 	node, err := graph.CreateNode("Container")
 	if err != nil {
@@ -166,6 +194,82 @@ func createContainer(graph *GraphManager, cons *Container) (tgdb.TGNode, tgdb.TG
 		return nil, err
 	}
 	fmt.Println("inserted container", node.GetAttribute("uid").GetValue())
+	return node, nil
+}
+
+func createPackage(graph *GraphManager, pkg *Package) (tgdb.TGNode, error) {
+	fmt.Println("create package", pkg.UID)
+	node, err := graph.CreateNode("Package")
+	if err != nil {
+		return nil, err
+	}
+	node.SetOrCreateAttribute("uid", pkg.UID)
+	node.SetOrCreateAttribute("qrCode", pkg.QRCode)
+	node.SetOrCreateAttribute("handlingCd", pkg.HandlingCd)
+	node.SetOrCreateAttribute("product", pkg.Product)
+	node.SetOrCreateAttribute("height", pkg.Height)
+	node.SetOrCreateAttribute("width", pkg.Width)
+	node.SetOrCreateAttribute("depth", pkg.Depth)
+	node.SetOrCreateAttribute("weight", pkg.Weight)
+	node.SetOrCreateAttribute("dryIceWeight", pkg.DryIceWeight)
+	node.SetOrCreateAttribute("carrier", pkg.Carrier)
+	if tm, err := time.Parse(time.RFC3339, pkg.CreatedTime); err == nil {
+		node.SetOrCreateAttribute("createdTime", tm.Unix())
+	}
+	if tm, err := time.Parse(time.RFC3339, pkg.EstPickupTime); err == nil {
+		node.SetOrCreateAttribute("estPickupTime", tm.Unix())
+	}
+	if tm, err := time.Parse(time.RFC3339, pkg.EstDeliveryTime); err == nil {
+		node.SetOrCreateAttribute("estDeliveryTime", tm.Unix())
+	}
+
+	if err = graph.InsertEntity(node); err != nil {
+		return nil, err
+	}
+	fmt.Println("inserted package", node.GetAttribute("uid").GetValue())
+	return node, nil
+}
+
+func createContent(graph *GraphManager, cont *Content) (tgdb.TGNode, error) {
+	fmt.Println("create content", cont.UID)
+	node, err := graph.CreateNode("Content")
+	if err != nil {
+		return nil, err
+	}
+	node.SetOrCreateAttribute("uid", cont.UID)
+	node.SetOrCreateAttribute("product", cont.Product)
+	node.SetOrCreateAttribute("description", cont.Description)
+	node.SetOrCreateAttribute("producer", cont.Producer)
+	node.SetOrCreateAttribute("itemCount", cont.ItemCount)
+	node.SetOrCreateAttribute("startLotNumber", cont.StartLotNumber)
+	node.SetOrCreateAttribute("endLotNumber", cont.EndLotNumber)
+
+	if err = graph.InsertEntity(node); err != nil {
+		return nil, err
+	}
+	fmt.Println("inserted content", node.GetAttribute("uid").GetValue())
+	return node, nil
+}
+
+func createAddress(graph *GraphManager, addr *Address) (tgdb.TGNode, error) {
+	fmt.Println("create address", addr.UID)
+	node, err := graph.CreateNode("Address")
+	if err != nil {
+		return nil, err
+	}
+	node.SetOrCreateAttribute("uid", addr.UID)
+	node.SetOrCreateAttribute("street", addr.Street)
+	node.SetOrCreateAttribute("city", addr.City)
+	node.SetOrCreateAttribute("stateProvince", addr.StateProvince)
+	node.SetOrCreateAttribute("postalCd", addr.PostalCd)
+	node.SetOrCreateAttribute("country", addr.Country)
+	node.SetOrCreateAttribute("latitude", addr.Latitude)
+	node.SetOrCreateAttribute("longitude", addr.Longitude)
+
+	if err = graph.InsertEntity(node); err != nil {
+		return nil, err
+	}
+	fmt.Println("inserted address", node.GetAttribute("uid").GetValue())
 	return node, nil
 }
 
@@ -279,6 +383,50 @@ func createEdgeContains(graph *GraphManager, parent, child tgdb.TGNode, inTime, 
 
 	_, err = graph.Commit()
 	fmt.Println("committed contains", err)
+	return err
+}
+
+func createEdgeSender(graph *GraphManager, pkg, addr tgdb.TGNode, sender string) error {
+	send, err := graph.CreateEdge("sender", pkg, addr)
+	if err != nil {
+		return err
+	}
+	send.SetOrCreateAttribute("name", sender)
+	if err := graph.InsertEntity(send); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	fmt.Println("committed sender", err)
+	return err
+}
+
+func createEdgeRecipient(graph *GraphManager, pkg, addr tgdb.TGNode, recipient string) error {
+	receive, err := graph.CreateEdge("recipient", pkg, addr)
+	if err != nil {
+		return err
+	}
+	receive.SetOrCreateAttribute("name", recipient)
+	if err := graph.InsertEntity(receive); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	fmt.Println("committed recipient", err)
+	return err
+}
+
+func createEdgeContainsContent(graph *GraphManager, pkg, cont tgdb.TGNode) error {
+	contains, err := graph.CreateEdge("contains", pkg, cont)
+	if err != nil {
+		return err
+	}
+	if err := graph.InsertEntity(contains); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	fmt.Println("committed contains content", err)
 	return err
 }
 
@@ -447,6 +595,66 @@ func initializeEmbeddedContainers(graph *GraphManager, parent tgdb.TGNode, embed
 		}
 	}
 	return nil
+}
+
+func upsertPackage(graph *GraphManager, pkg *Package) (tgdb.TGNode, error) {
+	key := map[string]interface{}{
+		"uid": pkg.UID,
+	}
+	if node, err := graph.GetNodeByKey("Package", key); err == nil && node != nil {
+		fmt.Println("package exist:", pkg.UID, pkg.CreatedTime)
+		return node, err
+	}
+	node, err := createPackage(graph, pkg)
+	if err != nil {
+		return node, err
+	}
+
+	from, err := upsertAddress(graph, pkg.From)
+	if err != nil || from == nil {
+		fmt.Println("failed to create sender address:", pkg.From.UID, pkg.From.Street)
+		return nil, err
+	}
+	if err := createEdgeSender(graph, node, from, pkg.Sender); err != nil {
+		return nil, err
+	}
+
+	to, err := upsertAddress(graph, pkg.To)
+	if err != nil || to == nil {
+		fmt.Println("failed to create recipient address:", pkg.To.UID, pkg.To.Street)
+		return nil, err
+	}
+	if err := createEdgeRecipient(graph, node, to, pkg.Recipient); err != nil {
+		return nil, err
+	}
+
+	return node, nil
+}
+
+func addPackageContent(graph *GraphManager, pkg tgdb.TGNode, cont *Content) error {
+	key := map[string]interface{}{
+		"uid": cont.UID,
+	}
+	if node, err := graph.GetNodeByKey("Content", key); err == nil && node != nil {
+		fmt.Println("content exist:", cont.UID, cont.Product)
+		return nil
+	}
+	node, err := createContent(graph, cont)
+	if err != nil || node == nil {
+		return err
+	}
+	return createEdgeContainsContent(graph, pkg, node)
+}
+
+func upsertAddress(graph *GraphManager, addr *Address) (tgdb.TGNode, error) {
+	key := map[string]interface{}{
+		"uid": addr.UID,
+	}
+	if node, err := graph.GetNodeByKey("Address", key); err == nil && node != nil {
+		fmt.Println("address exist:", addr.UID, addr.Street)
+		return node, err
+	}
+	return createAddress(graph, addr)
 }
 
 func execQuery(conn tgdb.TGConnection) {

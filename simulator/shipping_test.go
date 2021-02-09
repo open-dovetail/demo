@@ -39,7 +39,7 @@ func TestInitializePackage(t *testing.T) {
 	// parse sample request
 	sample, err := ioutil.ReadFile("./package.json")
 	assert.NoError(t, err, "read sample packcage requet should not throw error")
-	req := &PackageConfig{}
+	req := &PackageRequest{}
 	err = json.Unmarshal(sample, req)
 	assert.NoError(t, err, "unmarshal sample request should not throw error")
 
@@ -56,6 +56,8 @@ func TestInitializePackage(t *testing.T) {
 	assert.NoError(t, err, "estimated delivery time should be valid")
 	assert.True(t, createTime.Before(pickupTime), "created time should be before pickup time")
 	assert.True(t, pickupTime.Before(deliveryTime), "pickup time should be before delivery time")
+	fmt.Println(pkg.CreatedTime, pkg.EstPickupTime, pkg.EstDeliveryTime)
+	fmt.Println(time.Unix(createTime.Unix(), 0), time.Unix(pickupTime.Unix(), 0), time.Unix(deliveryTime.Unix(), 0))
 
 	// verify hash IDs
 	assert.Equal(t, "PfizerVaccine", pkg.Product, "product should be 'PfizerVaccine'")
