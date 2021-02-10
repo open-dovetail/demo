@@ -81,27 +81,28 @@ type PackageRequest struct {
 }
 
 // PrintShippingLabel processes a PackageConfig JSON request
-func PrintShippingLabel(request string) error {
+func PrintShippingLabel(request string) (*Package, error) {
 	req := &PackageRequest{}
 	err := json.Unmarshal([]byte(request), req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	pkg, err := initializePackage(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Content.UID = pkg.UID + "-1"
 
 	graph, err := GetTGConnection()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	node, err := upsertPackage(graph, pkg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return addPackageContent(graph, node, req.Content)
+	err = addPackageContent(graph, node, req.Content)
+	return pkg, err
 }
 
 func initializePackage(req *PackageRequest) (*Package, error) {
@@ -147,10 +148,8 @@ func initializePackage(req *PackageRequest) (*Package, error) {
 	pkg.UID = createFnvHash(pkg)
 	pickupTime := estimatePUDTime(origin.GMTOffset, pickupDelay)
 	deliveryTime := estimatePUDTime(dest.GMTOffset, deliveryDelay)
-	dd := deliveryTime.YearDay() - pickupTime.YearDay()
-	if dd < 1 {
-		deliveryTime = deliveryTime.Add(time.Hour * time.Duration((1-dd)*24))
-	}
+	deliveryTime = correctTimeByDays(deliveryTime, pickupTime)
+
 	pkg.EstPickupTime = pickupTime.Format(time.RFC3339)
 	pkg.EstDeliveryTime = deliveryTime.Format(time.RFC3339)
 
@@ -180,9 +179,26 @@ func estimatePUDTime(gmtOffset string, delay float64) time.Time {
 		t = time.Now()
 	}
 
-	// add local delay
-	t = t.Add(time.Minute * time.Duration(int(delay*60)))
+	// add local delay if pickup already started for today
 	if t.Before(c) {
+		t = t.Add(time.Hour * time.Duration(24))
+	}
+	t = t.Add(time.Minute * time.Duration(int(delay*60)))
+
+	return t
+}
+
+// correct an estimated time to be after a reference time by adding days
+func correctTimeByDays(estimated, after time.Time) time.Time {
+	if estimated.After(after) {
+		return estimated
+	}
+	dd := after.YearDay() - estimated.YearDay()
+	t := estimated
+	if dd > 0 {
+		t = estimated.Add(time.Hour * time.Duration(dd*24))
+	}
+	if t.Before(after) {
 		t = t.Add(time.Hour * time.Duration(24))
 	}
 	return t
@@ -260,4 +276,49 @@ func readQRCode(png []byte) (string, error) {
 		return "", err
 	}
 	return result.GetText(), nil
+}
+
+// simulate pickup of a package of specified uid
+func pickupPackage(packageID string) error {
+
+	graph, err := GetTGConnection()
+	if err != nil {
+		return err
+	}
+	pkg, err := queryPackageInfo(graph, packageID)
+	if err != nil {
+		return err
+	}
+
+	originOffice := findOfficeByState(pkg.From.StateProvince)
+	if originOffice == nil {
+		return fmt.Errorf("No office serves sender state %s", pkg.From.StateProvince)
+	}
+
+	hubTime, err := handlePickup(graph, pkg, originOffice)
+	if err != nil {
+		return err
+	}
+
+	destOffice := findOfficeByState(pkg.To.StateProvince)
+	if destOffice == nil {
+		return fmt.Errorf("No office serves recipient state %s", pkg.To.StateProvince)
+	}
+	if destOffice.Carrier != originOffice.Carrier {
+		originHub, ok := Hubs[originOffice.Carrier]
+		if !ok {
+			return fmt.Errorf("No hub office defined for carrier %s", originOffice.Carrier)
+		}
+		destHub, ok := Hubs[destOffice.Carrier]
+		if !ok {
+			return fmt.Errorf("No hub office defined for carrier %s", destOffice.Carrier)
+		}
+		err = handleTransfer(graph, pkg, originHub, destHub, hubTime)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = handleDelivery(graph, pkg, destOffice, hubTime)
+
+	return err
 }

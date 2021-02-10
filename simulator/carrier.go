@@ -330,3 +330,12 @@ func assignContainers(route *Route) {
 	// assign vehicle to route
 	route.Vehicle = vehicle
 }
+
+// IsMonitored returns true if a threshold is defined for the specified product
+func IsMonitored(product string) bool {
+	if len(product) == 0 {
+		return false
+	}
+	_, ok := Thresholds[product]
+	return ok
+}

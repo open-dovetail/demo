@@ -62,7 +62,7 @@ func TestPrintShippingLabel(t *testing.T) {
 	sample, err := ioutil.ReadFile("./package.json")
 	assert.NoError(t, err, "read sample packcage requet should not throw error")
 
-	err = PrintShippingLabel(string(sample))
+	_, err = PrintShippingLabel(string(sample))
 	assert.NoError(t, err, "print shipping label should not throw error")
 
 	// verify package
