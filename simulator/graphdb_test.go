@@ -43,17 +43,17 @@ func TestInitializeGraph(t *testing.T) {
 func TestPrintShippingLabel(t *testing.T) {
 	fmt.Println("TestPrintShippingLabel")
 
-	// make sure graph DB is initialized
+	// configure in-memory cariier and routes
 	err := Initialize(configFile)
 	assert.NoError(t, err, "initialize config should not throw error")
 	graph, err := GetTGConnection()
 	assert.NoError(t, err, "connect to TGDB should not throw error")
 
+	// initalize graph only if carriers have not been created yet
 	query := fmt.Sprintf("gremlin://g.V().has('Carrier', 'name', '%s');", "SLS")
 	result, err := graph.Query(query)
 	assert.NoError(t, err, "Gremlin query should not return error")
 	if len(result) == 0 {
-		// initalize graph only if carriers have not been created yet
 		err = InitializeGraph(graph)
 		assert.NoError(t, err, "initialize GraphDB should not throw error")
 	}
@@ -77,8 +77,8 @@ func TestPrintShippingLabel(t *testing.T) {
 	assert.Equal(t, 3, len(result), "package should have 3 out nodes")
 }
 
-func TestQueryPackage(t *testing.T) {
-	fmt.Println("TestQueryPackage")
+func TestPickupPackage(t *testing.T) {
+	fmt.Println("TestPickupPackage")
 
 	// connect to TGDB
 	err := Initialize(configFile)
@@ -86,20 +86,49 @@ func TestQueryPackage(t *testing.T) {
 	graph, err := GetTGConnection()
 	assert.NoError(t, err, "connect to TGDB should not throw error")
 
-	result, err := graph.Query("gremlin://g.V().has('Package','product','PfizerVaccine').values('estPickupTime');")
-	assert.NoError(t, err, "package timestamp query should not throw error")
-	for _, r := range result {
-		fmt.Printf("%T: %v\n", r, r)
+	result, err := graph.Query("gremlin://g.V().has('Package','handlingCd','P').values('uid');")
+	assert.NoError(t, err, "package uid query should not throw error")
+
+	// simulate pickup/delivery of a newly created package
+	for _, attr := range result {
+		uid := attr.(string)
+		query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s');", uid)
+		result, err = graph.Query(query)
+		assert.NoError(t, err, "package query should not throw error")
+		assert.Equal(t, 1, len(result), "query should return 1 package")
+
+		// check if it has already been picked up
+		query = fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').inE('pickup');", uid)
+		result, err = graph.Query(query)
+		assert.NoError(t, err, "query pickup event should not throw error")
+		if len(result) > 0 {
+			// already picked up, so skip it
+			continue
+		}
+
+		// simulate package pickup
+		//err = pickupPackage(uid)
+		//assert.NoError(t, err, "pickup package should not throw exception")
+		break
 	}
+}
 
-	result, err = graph.Query("gremlin://g.V().has('Package','product','PfizerVaccine').values('uid');")
-	assert.NoError(t, err, "package query should not throw error")
-	assert.Less(t, 0, len(result), "one or more packages should exist in TGDB")
-	fmt.Printf("uid %T, %v\n", result[0], result[0])
-	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').out();", result[0].(string))
-	result, err = graph.Query(query)
-	assert.NoError(t, err, "package out-node query should not throw error")
-	assert.Equal(t, 3, len(result), "package should have 3 out nodes")
+func TestCreateDeparts(t *testing.T) {
+	fmt.Println("TestCreateDeparts")
 
-	// assert.Fail(t, "test")
+	// connect to TGDB
+	// err := Initialize(configFile)
+	// assert.NoError(t, err, "initialize config should not throw error")
+	// graph, err := GetTGConnection()
+	// assert.NoError(t, err, "connect to TGDB should not throw error")
+
+	// result, err := graph.Query("gremlin://g.V().has('Route','routeNbr','NLS009');")
+	// assert.NoError(t, err, "rooute query should not throw error")
+	// route := result[0].(tgdb.TGNode)
+	// result, err = graph.Query("gremlin://g.V().has('Office','iata','JFK').has('Office','carrier','NLS');")
+	// assert.NoError(t, err, "office query should not throw error")
+	// office := result[0].(tgdb.TGNode)
+	// departTime, err := createEdgeDeparts(graph, route, office, time.Now())
+	// fmt.Println("depart", departTime)
+	// assert.NoError(t, err, "create depart edge should not throw error")
 }

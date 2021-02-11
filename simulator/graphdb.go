@@ -314,6 +314,7 @@ func createEdgeDeparts(graph *GraphManager, route, office tgdb.TGNode, after tim
 		departTime = correctTimeByDays(departTime, after)
 		tm = departTime.Unix()
 	}
+	fmt.Println("depart time", tm, departTime)
 	departs.SetOrCreateAttribute("eventTimestamp", tm)
 	if err := graph.InsertEntity(departs); err != nil {
 		return departTime, err
@@ -580,6 +581,7 @@ func initializeRoutes(graph *GraphManager, office *Office) error {
 		if _, err := createEdgeDeparts(graph, route, from, time.Time{}); err != nil {
 			return err
 		}
+
 		// create arrival for today
 		to := officeNodes[office.Carrier+":"+r.To.Iata]
 		if _, err := createEdgeArrives(graph, route, to, time.Time{}); err != nil {
