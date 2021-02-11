@@ -2,7 +2,7 @@
 SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 */
 
-package simulator
+package impl
 
 import (
 	"fmt"
@@ -14,9 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var configFile = "./config.json"
+var configFile = "../config.json"
 
 func setup() error {
+
 	return readConfig(configFile)
 }
 

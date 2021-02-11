@@ -2,7 +2,7 @@
 SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 */
 
-package simulator
+package impl
 
 import (
 	"bytes"
@@ -80,8 +80,23 @@ type PackageRequest struct {
 	Content      *Content `json:"content"`
 }
 
+// PackageResponse returns data of newly created shipping label
+type PackageResponse struct {
+	UID             string   `json:"uid"`
+	HandlingCd      string   `json:"handling"`
+	Product         string   `json:"product"`
+	Carrier         string   `json:"carrier"`
+	CreatedTime     string   `json:"created"`
+	EstPickupTime   string   `json:"estimated-pickup"`
+	EstDeliveryTime string   `json:"estimated-delivery"`
+	Sender          string   `json:"sender"`
+	From            *Address `json:"from"`
+	Recipient       string   `json:"recipient"`
+	To              *Address `json:"to"`
+}
+
 // PrintShippingLabel processes a PackageConfig JSON request
-func PrintShippingLabel(request string) (*Package, error) {
+func PrintShippingLabel(request string) ([]byte, error) {
 	req := &PackageRequest{}
 	err := json.Unmarshal([]byte(request), req)
 	if err != nil {
@@ -102,7 +117,21 @@ func PrintShippingLabel(request string) (*Package, error) {
 		return nil, err
 	}
 	err = addPackageContent(graph, node, req.Content)
-	return pkg, err
+
+	resp := &PackageResponse{
+		UID:             pkg.UID,
+		HandlingCd:      pkg.HandlingCd,
+		Product:         pkg.Product,
+		Carrier:         pkg.Carrier,
+		CreatedTime:     pkg.CreatedTime,
+		EstPickupTime:   pkg.EstPickupTime,
+		EstDeliveryTime: pkg.EstDeliveryTime,
+		Sender:          pkg.Sender,
+		From:            pkg.From,
+		Recipient:       pkg.Recipient,
+		To:              pkg.To,
+	}
+	return json.Marshal(resp)
 }
 
 func initializePackage(req *PackageRequest) (*Package, error) {

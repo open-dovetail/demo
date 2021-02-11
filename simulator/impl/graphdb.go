@@ -2,7 +2,7 @@
 SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 */
 
-package simulator
+package impl
 
 import (
 	"fmt"

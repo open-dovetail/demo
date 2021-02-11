@@ -2,7 +2,7 @@
 SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 */
 
-package simulator
+package impl
 
 import (
 	"fmt"
@@ -59,7 +59,7 @@ func TestPrintShippingLabel(t *testing.T) {
 	}
 
 	// parse sample request
-	sample, err := ioutil.ReadFile("./package.json")
+	sample, err := ioutil.ReadFile("../package.json")
 	assert.NoError(t, err, "read sample packcage requet should not throw error")
 
 	_, err = PrintShippingLabel(string(sample))
