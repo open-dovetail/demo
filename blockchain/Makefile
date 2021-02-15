@@ -1,0 +1,53 @@
+#
+# Copyright (c) 2020, TIBCO Software Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+#
+MAKEFILE_THIS := $(lastword $(MAKEFILE_LIST))
+SRC_PATH      := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_THIS))))
+APP_FILE      := shipping.json
+APP_NAME      := shipping_cc
+CONTRACT      := contract.json
+
+SCRIPT_PATH   ?= $(SRC_PATH)/../../fabric-chaincode/scripts
+FAB_PATH      ?= $(SRC_PATH)/../../hyperledger/fabric-samples
+CC_DEPLOY     := $(FAB_PATH)/chaincode
+
+# uncomment this line to build for Flogo Enterprise
+FE            := -e
+
+.PHONY: all
+all: build deploy
+
+.PHONY: clean
+clean:
+	rm -Rf $(SRC_PATH)/$(APP_NAME)
+
+.PHONY: build
+build: $(CONTRACT) clean
+	flogo contract2flow $(FE) -c $(CONTRACT) -o $(APP_FILE)
+	$(SCRIPT_PATH)/build.sh $(APP_FILE) $(APP_NAME)
+
+.PHONY: deploy
+deploy: $(APP_NAME)_1.0.tar.gz
+	cp $(APP_NAME)_1.0.tar.gz $(CC_DEPLOY)
+	cp cc-init.sh $(FAB_PATH)/test-network/cc-init-shipping.sh
+	cp cc-test.sh $(FAB_PATH)/test-network/cc-test-shipping.sh
+
+.PHONY: start
+start:
+	cd $(FAB_PATH)/test-network && ./network.sh up createChannel -ca
+	$(MARBLE_HOME)/gen-certs.sh
+
+.PHONY: cc-init
+cc-init: $(FAB_PATH)/test-network/cc-init-shipping.sh
+	docker exec cli bash -c './cc-init-shipping.sh'
+
+.PHONY: cc-test
+cc-test: $(FAB_PATH)/test-network/cc-test-shipping.sh
+	docker exec cli bash -c './cc-test-shipping.sh'
+
+.PHONY: shutdown
+shutdown:
+	cd $(FAB_PATH)/test-network && ./network.sh down

@@ -67,6 +67,7 @@ type Content struct {
 
 // PackageRequest defines JSON string for a shipment request
 type PackageRequest struct {
+	UID          string   `json:"uid,omitempty"`
 	HandlingCd   string   `json:"handling"`
 	Height       float64  `json:"height"`
 	Width        float64  `json:"width"`

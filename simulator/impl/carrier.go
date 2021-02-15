@@ -224,7 +224,7 @@ func randomTimestamp(eventTime, gmtOffset string, spanMinutes float64) int64 {
 
 	// add random time delay and return UNIX seconds
 	dm := rand.Float64()*2.0*spanMinutes - spanMinutes
-	t = t.Add(time.Minute * time.Duration(int(dm)))
+	t = t.Add(time.Second * time.Duration(int(dm*60)))
 	return t.Unix()
 }
 

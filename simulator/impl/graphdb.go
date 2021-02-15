@@ -74,6 +74,11 @@ func (g *GraphManager) InsertEntity(entity tgdb.TGEntity) tgdb.TGError {
 	return g.conn.InsertEntity(entity)
 }
 
+// UpdateEntity marks a node or edge for update
+func (g *GraphManager) UpdateEntity(entity tgdb.TGEntity) tgdb.TGError {
+	return g.conn.UpdateEntity(entity)
+}
+
 // Query executes a Gremlin query
 func (g *GraphManager) Query(grem string) ([]interface{}, error) {
 	rset, err := g.conn.ExecuteQuery(grem, nil)
@@ -301,20 +306,20 @@ func createEdgeSchedules(graph *GraphManager, carrier, route tgdb.TGNode) error 
 }
 
 func createEdgeDeparts(graph *GraphManager, route, office tgdb.TGNode, after time.Time) (time.Time, error) {
-	fmt.Println("create departs", route.GetAttribute("routeNbr").GetValue(), office.GetAttribute("iata").GetValue())
-	departs, err := graph.CreateEdge("departs", route, office)
-	if err != nil {
-		return time.Time{}, err
-	}
-	eventTime := route.GetAttribute("schdDepartTime").GetValue().(string)
-	gmtOffset := office.GetAttribute("gmtOffset").GetValue().(string)
-	tm := randomTimestamp(eventTime, gmtOffset, 5)
+	fmt.Println("create departs", getAttributeAsString(route, "routeNbr"), getAttributeAsString(office, "iata"))
+	// calculate random depart time according to route schedule
+	tm := randomTimestamp(getAttributeAsString(route, "schdDepartTime"), getAttributeAsString(office, "gmtOffset"), 5)
 	departTime := time.Unix(tm, 0)
 	if departTime.Before(after) {
 		departTime = correctTimeByDays(departTime, after)
 		tm = departTime.Unix()
 	}
 	fmt.Println("depart time", tm, departTime)
+
+	departs, err := graph.CreateEdge("departs", route, office)
+	if err != nil {
+		return time.Time{}, err
+	}
 	departs.SetOrCreateAttribute("eventTimestamp", tm)
 	if err := graph.InsertEntity(departs); err != nil {
 		return departTime, err
@@ -326,17 +331,19 @@ func createEdgeDeparts(graph *GraphManager, route, office tgdb.TGNode, after tim
 }
 
 func createEdgeArrives(graph *GraphManager, route, office tgdb.TGNode, after time.Time) (time.Time, error) {
-	arrives, err := graph.CreateEdge("arrives", route, office)
-	if err != nil {
-		return time.Time{}, err
-	}
-	eventTime := route.GetAttribute("schdArrivalTime").GetValue().(string)
-	gmtOffset := office.GetAttribute("gmtOffset").GetValue().(string)
-	tm := randomTimestamp(eventTime, gmtOffset, 5)
+	fmt.Println("create arrives", getAttributeAsString(route, "routeNbr"), getAttributeAsString(office, "iata"))
+	// calculate random depart time according to route schedule
+	tm := randomTimestamp(getAttributeAsString(route, "schdArrivalTime"), getAttributeAsString(office, "gmtOffset"), 5)
 	arrivalTime := time.Unix(tm, 0)
 	if arrivalTime.Before(after) {
 		arrivalTime = correctTimeByDays(arrivalTime, after)
 		tm = arrivalTime.Unix()
+	}
+	fmt.Println("arrival time", tm, arrivalTime)
+
+	arrives, err := graph.CreateEdge("arrives", route, office)
+	if err != nil {
+		return time.Time{}, err
 	}
 	arrives.SetOrCreateAttribute("eventTimestamp", tm)
 	if err := graph.InsertEntity(arrives); err != nil {
