@@ -33,7 +33,7 @@ export CORE_PEER_ADDRESS=peer0.org2.example.com:9051
 export CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/test-network/organizations/peerOrganizations/org2.example.com/users/slsadm@org2.example.com/msp
 
 peer chaincode invoke $ORDERER_ARGS -C mychannel -n $CCNAME $ORG1_ARGS $ORG2_ARGS -c '{"function":"transferPackageAck","Args":["677e9dcf985c890d","2021-02-12 20:30:40","NLS","39.7392","-104.9903"]}'
-#peer chaincode invoke $ORDERER_ARGS -C mychannel -n $CCNAME $ORG1_ARGS $ORG2_ARGS -c '{"function":"deliverPackage","Args":["677e9dcf985c890d","2021-02-13 10:30:40","33.9416","-118.4085"]}'
+peer chaincode invoke $ORDERER_ARGS -C mychannel -n $CCNAME $ORG1_ARGS $ORG2_ARGS -c '{"function":"deliverPackage","Args":["677e9dcf985c890d","2021-02-13 10:30:40","33.9416","-118.4085"]}'
 
 # get package by uid
 sleep 5
