@@ -38,7 +38,7 @@ deploy: $(APP_NAME)_1.0.tar.gz
 .PHONY: start
 start:
 	cd $(FAB_PATH)/test-network && ./network.sh up createChannel -ca
-	$(MARBLE_HOME)/gen-certs.sh
+	$(SRC_PATH)/gen-certs.sh
 
 .PHONY: cc-init
 cc-init: $(FAB_PATH)/test-network/cc-init-shipping.sh

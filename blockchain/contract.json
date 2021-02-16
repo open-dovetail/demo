@@ -734,9 +734,6 @@
           "uid": {
             "type": "string"
           },
-          "docType": {
-            "type": "string"
-          },
           "handling": {
             "type": "string"
           },
