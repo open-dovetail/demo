@@ -18,7 +18,11 @@ var configFile = "../config.json"
 
 func setup() error {
 
-	return readConfig(configFile)
+	err := Initialize(configFile)
+	if err != nil {
+		return nil
+	}
+	return setupDemoGraph()
 }
 
 func TestMain(m *testing.M) {
@@ -90,7 +94,6 @@ func TestArrivalTime(t *testing.T) {
 func TestCreateRoutes(t *testing.T) {
 	fmt.Println("TestCreateRoutes")
 	carrier := Carriers["SLS"]
-	createRoutes(carrier)
 	hub := carrier.Offices["DEN"]
 	assert.Equal(t, 4, len(hub.Routes), "Hub should have 4 routes")
 	// find an airplane route

@@ -13,29 +13,46 @@ import (
 	"github.com/yxuco/tgdb"
 )
 
+func setupDemoGraph() error {
+	graph, err := GetTGConnection()
+	if err != nil {
+		return err
+	}
+
+	query := fmt.Sprintf("gremlin://g.V().has('Carrier', 'name', '%s');", "SLS")
+	result, err := graph.Query(query)
+	if err != nil {
+		return err
+	}
+	if len(result) == 0 {
+		// initalize graph only if carriers have not been created yet
+		return InitializeGraph(graph)
+	}
+	return nil
+}
+
 func TestInitializeGraph(t *testing.T) {
 	fmt.Println("TestInitializeGraph")
 
-	err := Initialize(configFile)
-	assert.NoError(t, err, "initialize config should not throw error")
 	graph, err := GetTGConnection()
 	assert.NoError(t, err, "connect to TGDB should not throw error")
 
 	query := fmt.Sprintf("gremlin://g.V().has('Carrier', 'name', '%s');", "SLS")
 	result, err := graph.Query(query)
 	assert.NoError(t, err, "Gremlin query should not return error")
-	if len(result) == 0 {
-		// initalize graph only if carriers have not been created yet
-		err = InitializeGraph(graph)
-		assert.NoError(t, err, "initialize GraphDB should not throw error")
-	} else {
-		node, ok := result[0].(tgdb.TGNode)
-		assert.True(t, ok, "query result should be a TGNode")
-		attrs, err := node.GetAttributes()
-		assert.NoError(t, err, "get attributes should not throw error")
-		fmt.Println("carrier SLS already exists")
-		for _, v := range attrs {
-			fmt.Printf("\t%s => %v\n", v.GetName(), v.GetValue())
+	assert.Equal(t, 1, len(result), "carrier query should return 1 node")
+
+	node, ok := result[0].(tgdb.TGNode)
+	assert.True(t, ok, "query result should be a TGNode")
+	attrs, err := node.GetAttributes()
+	assert.NoError(t, err, "get attributes should not throw error")
+	for _, v := range attrs {
+		name := v.GetName()
+		value := v.GetValue().(string)
+		if name == "name" {
+			assert.Equal(t, "SLS", value, "carrier name should be 'SLS'")
+		} else {
+			assert.Equal(t, "South Logistics Services", value, "carrier description should be 'South Logistics Services'")
 		}
 	}
 }
@@ -43,20 +60,8 @@ func TestInitializeGraph(t *testing.T) {
 func TestPrintShippingLabel(t *testing.T) {
 	fmt.Println("TestPrintShippingLabel")
 
-	// configure in-memory cariier and routes
-	err := Initialize(configFile)
-	assert.NoError(t, err, "initialize config should not throw error")
 	graph, err := GetTGConnection()
 	assert.NoError(t, err, "connect to TGDB should not throw error")
-
-	// initalize graph only if carriers have not been created yet
-	query := fmt.Sprintf("gremlin://g.V().has('Carrier', 'name', '%s');", "SLS")
-	result, err := graph.Query(query)
-	assert.NoError(t, err, "Gremlin query should not return error")
-	if len(result) == 0 {
-		err = InitializeGraph(graph)
-		assert.NoError(t, err, "initialize GraphDB should not throw error")
-	}
 
 	// parse sample request
 	sample, err := ioutil.ReadFile("../package.json")
@@ -66,12 +71,12 @@ func TestPrintShippingLabel(t *testing.T) {
 	assert.NoError(t, err, "print shipping label should not throw error")
 
 	// verify package
-	result, err = graph.Query("gremlin://g.V().has('Package','product','PfizerVaccine').values('uid');")
+	result, err := graph.Query("gremlin://g.V().has('Package','product','PfizerVaccine').values('uid');")
 	assert.NoError(t, err, "package query should not throw error")
 	assert.Greater(t, len(result), 0, "one or more packages should exist in TGDB")
 
 	// verify package out node count
-	query = fmt.Sprintf("gremlin://g.V().has('Package', 'uid', '%s').out();", result[0].(string))
+	query := fmt.Sprintf("gremlin://g.V().has('Package', 'uid', '%s').out();", result[0].(string))
 	result, err = graph.Query(query)
 	assert.NoError(t, err, "package out-nodes query should not throw error")
 	assert.Equal(t, 3, len(result), "package should have 3 out nodes")
@@ -80,9 +85,6 @@ func TestPrintShippingLabel(t *testing.T) {
 func TestPickupPackage(t *testing.T) {
 	fmt.Println("TestPickupPackage")
 
-	// connect to TGDB
-	err := Initialize(configFile)
-	assert.NoError(t, err, "initialize config should not throw error")
 	graph, err := GetTGConnection()
 	assert.NoError(t, err, "connect to TGDB should not throw error")
 
@@ -107,28 +109,8 @@ func TestPickupPackage(t *testing.T) {
 		}
 
 		// simulate package pickup
-		//err = pickupPackage(uid)
-		//assert.NoError(t, err, "pickup package should not throw exception")
+		err = pickupPackage(uid)
+		assert.NoError(t, err, "pickup package should not throw exception")
 		break
 	}
-}
-
-func TestCreateDeparts(t *testing.T) {
-	fmt.Println("TestCreateDeparts")
-
-	// connect to TGDB
-	// err := Initialize(configFile)
-	// assert.NoError(t, err, "initialize config should not throw error")
-	// graph, err := GetTGConnection()
-	// assert.NoError(t, err, "connect to TGDB should not throw error")
-
-	// result, err := graph.Query("gremlin://g.V().has('Route','routeNbr','NLS009');")
-	// assert.NoError(t, err, "rooute query should not throw error")
-	// route := result[0].(tgdb.TGNode)
-	// result, err = graph.Query("gremlin://g.V().has('Office','iata','JFK').has('Office','carrier','NLS');")
-	// assert.NoError(t, err, "office query should not throw error")
-	// office := result[0].(tgdb.TGNode)
-	// departTime, err := createEdgeDeparts(graph, route, office, time.Now())
-	// fmt.Println("depart", departTime)
-	// assert.NoError(t, err, "create depart edge should not throw error")
 }

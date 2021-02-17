@@ -332,7 +332,7 @@ func createEdgeDeparts(graph *GraphManager, route, office tgdb.TGNode, after tim
 
 func createEdgeArrives(graph *GraphManager, route, office tgdb.TGNode, after time.Time) (time.Time, error) {
 	fmt.Println("create arrives", getAttributeAsString(route, "routeNbr"), getAttributeAsString(office, "iata"))
-	// calculate random depart time according to route schedule
+	// calculate random arrival time according to route schedule
 	tm := randomTimestamp(getAttributeAsString(route, "schdArrivalTime"), getAttributeAsString(office, "gmtOffset"), 5)
 	arrivalTime := time.Unix(tm, 0)
 	if arrivalTime.Before(after) {
@@ -888,13 +888,16 @@ func localPickup(graph *GraphManager, pickupTime time.Time, origin, pkg tgdb.TGN
 
 	// get the local route
 	iata := getAttributeAsString(origin, "iata")
-	query := fmt.Sprintf("gremlin://g.V().has('Route','fromIata','%s').has('Route','type','G');", iata)
+	query := fmt.Sprintf("gremlin://g.V().has('Route','fromIata','%s').has('Route','type','G').values('routeNbr');", iata)
 	data, err := graph.Query(query)
 	if err != nil || len(data) == 0 {
 		return time.Time{}, fmt.Errorf("no local route found at %s", iata)
 	}
-	route := data[0].(tgdb.TGNode)
-	routeNbr := getAttributeAsString(route, "routeNbr")
+	routeNbr := data[0].(string)
+	route, err := graph.GetNodeByKey("Route", map[string]interface{}{"routeNbr": routeNbr})
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	// get last arrival time of the local route
 	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('arrives').order().by('eventTimestamp', desc).values('eventTimestamp').limit(1);", routeNbr)
@@ -918,15 +921,19 @@ func localPickup(graph *GraphManager, pickupTime time.Time, origin, pkg tgdb.TGN
 	// find container to add package
 	handling := getAttributeAsString(pkg, "handlingCd")
 	product := getAttributeAsString(pkg, "product")
-	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV();", routeNbr)
+	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().values('uid');", routeNbr)
 	if handling == "P" && IsMonitored(product) {
-		query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().has('Container','monitor','%s');", routeNbr, product)
+		query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().has('Container','monitor','%s').values('uid');", routeNbr, product)
 	}
 	data, err = graph.Query(query)
 	if err != nil || len(data) == 0 {
-		return arrivalTime, fmt.Errorf("no container found for %s", routeNbr)
+		return arrivalTime, fmt.Errorf("no container found for %s and %s", routeNbr, product)
 	}
-	cons := data[0].(tgdb.TGNode)
+	uid := data[0].(string)
+	cons, err := graph.GetNodeByKey("Container", map[string]interface{}{"uid": uid})
+	if err != nil {
+		return arrivalTime, err
+	}
 
 	// add package to the parent container
 	err = createEdgeContains(graph, cons, pkg, pickupTime.Unix(), arrivalTime.Unix(), "P")
@@ -938,13 +945,16 @@ func originRoute(graph *GraphManager, arrivalTime time.Time, origin, pkg tgdb.TG
 
 	// get the origin route
 	iata := getAttributeAsString(origin, "iata")
-	query := fmt.Sprintf("gremlin://g.V().has('Route','fromIata','%s').has('Route','type','A');", iata)
+	query := fmt.Sprintf("gremlin://g.V().has('Route','fromIata','%s').has('Route','type','A').values('routeNbr');", iata)
 	data, err := graph.Query(query)
 	if err != nil || len(data) == 0 {
 		return time.Time{}, fmt.Errorf("no origin route found at %s", iata)
 	}
-	route := data[0].(tgdb.TGNode)
-	routeNbr := getAttributeAsString(route, "routeNbr")
+	routeNbr := data[0].(string)
+	route, err := graph.GetNodeByKey("Route", map[string]interface{}{"routeNbr": routeNbr})
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	// get last origin route depart time
 	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('departs').order().by('eventTimestamp', desc).values('eventTimestamp').limit(1);", routeNbr)
@@ -991,15 +1001,19 @@ func originRoute(graph *GraphManager, arrivalTime time.Time, origin, pkg tgdb.TG
 	handling := getAttributeAsString(pkg, "handlingCd")
 	product := getAttributeAsString(pkg, "product")
 
-	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV();", routeNbr)
+	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().values('uid');", routeNbr)
 	if handling == "P" && IsMonitored(product) {
-		query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().outE('contains').inV().has('Container','monitor','%s');", routeNbr, product)
+		query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().outE('contains').inV().has('Container','monitor','%s').values('uid');", routeNbr, product)
 	}
 	data, err = graph.Query(query)
 	if err != nil || len(data) == 0 {
-		return hubTime, fmt.Errorf("no container found for %s", routeNbr)
+		return hubTime, fmt.Errorf("no container found for %s and %s", routeNbr, product)
 	}
-	cons := data[0].(tgdb.TGNode)
+	uid := data[0].(string)
+	cons, err := graph.GetNodeByKey("Container", map[string]interface{}{"uid": uid})
+	if err != nil {
+		return hubTime, err
+	}
 
 	// add package to the parent container
 	err = createEdgeContains(graph, cons, pkg, departTime.Unix(), hubTime.Unix(), "P")
@@ -1080,13 +1094,16 @@ func deliveryRoute(graph *GraphManager, hubTime time.Time, dest, pkg tgdb.TGNode
 
 	// get the destination route
 	iata := getAttributeAsString(dest, "iata")
-	query := fmt.Sprintf("gremlin://g.V().has('Route','toIata','%s').has('Route','type','A');", iata)
+	query := fmt.Sprintf("gremlin://g.V().has('Route','toIata','%s').has('Route','type','A').values('routeNbr');", iata)
 	data, err := graph.Query(query)
 	if err != nil || len(data) == 0 {
 		return time.Time{}, fmt.Errorf("no destination route found at %s", iata)
 	}
-	route := data[0].(tgdb.TGNode)
-	routeNbr := getAttributeAsString(route, "routeNbr")
+	routeNbr := data[0].(string)
+	route, err := graph.GetNodeByKey("Route", map[string]interface{}{"routeNbr": routeNbr})
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	// get last destination route depart time from hub
 	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('departs').order().by('eventTimestamp', desc).values('eventTimestamp').limit(1);", routeNbr)
@@ -1133,15 +1150,19 @@ func deliveryRoute(graph *GraphManager, hubTime time.Time, dest, pkg tgdb.TGNode
 	handling := getAttributeAsString(pkg, "handlingCd")
 	product := getAttributeAsString(pkg, "product")
 
-	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV();", routeNbr)
+	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().values('uid');", routeNbr)
 	if handling == "P" && IsMonitored(product) {
-		query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().outE('contains').inV().has('Container','monitor','%s');", routeNbr, product)
+		query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().outE('contains').inV().has('Container','monitor','%s').values('uid');", routeNbr, product)
 	}
 	data, err = graph.Query(query)
 	if err != nil || len(data) == 0 {
-		return arrivalTime, fmt.Errorf("no container found for %s", routeNbr)
+		return arrivalTime, fmt.Errorf("no container found for %s and %s", routeNbr, product)
 	}
-	cons := data[0].(tgdb.TGNode)
+	uid := data[0].(string)
+	cons, err := graph.GetNodeByKey("Container", map[string]interface{}{"uid": uid})
+	if err != nil {
+		return arrivalTime, err
+	}
 
 	// add package to the parent container
 	err = createEdgeContains(graph, cons, pkg, departTime.Unix(), arrivalTime.Unix(), "P")
@@ -1153,13 +1174,16 @@ func localDelivery(graph *GraphManager, arrivalTime, deliveryTime time.Time, des
 
 	// get the local route
 	iata := getAttributeAsString(dest, "iata")
-	query := fmt.Sprintf("gremlin://g.V().has('Route','fromIata','%s').has('Route','type','G');", iata)
+	query := fmt.Sprintf("gremlin://g.V().has('Route','fromIata','%s').has('Route','type','G').values('routeNbr');", iata)
 	data, err := graph.Query(query)
 	if err != nil || len(data) == 0 {
 		return time.Time{}, fmt.Errorf("no local route found at %s", iata)
 	}
-	route := data[0].(tgdb.TGNode)
-	routeNbr := getAttributeAsString(route, "routeNbr")
+	routeNbr := data[0].(string)
+	route, err := graph.GetNodeByKey("Route", map[string]interface{}{"routeNbr": routeNbr})
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	// get last depart time of the local route
 	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('departs').order().by('eventTimestamp', desc).values('eventTimestamp').limit(1);", routeNbr)
@@ -1183,16 +1207,19 @@ func localDelivery(graph *GraphManager, arrivalTime, deliveryTime time.Time, des
 	// find container to add package
 	handling := getAttributeAsString(pkg, "handlingCd")
 	product := getAttributeAsString(pkg, "product")
-	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV();", routeNbr)
+	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().values('uid');", routeNbr)
 	if handling == "P" && IsMonitored(product) {
-		query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().has('Container','monitor','%s');", routeNbr, product)
+		query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').inE('assigned').outV().outE('contains').inV().has('Container','monitor','%s').values('uid');", routeNbr, product)
 	}
 	data, err = graph.Query(query)
 	if err != nil || len(data) == 0 {
-		return arrivalTime, fmt.Errorf("no container found for %s", routeNbr)
+		return arrivalTime, fmt.Errorf("no container found for %s and %s", routeNbr, product)
 	}
-	cons := data[0].(tgdb.TGNode)
-
+	uid := data[0].(string)
+	cons, err := graph.GetNodeByKey("Container", map[string]interface{}{"uid": uid})
+	if err != nil {
+		return arrivalTime, err
+	}
 	// add package to the parent container
 	err = createEdgeContains(graph, cons, pkg, departTime.Unix(), deliveryTime.Unix(), "P")
 	return deliveryTime, err

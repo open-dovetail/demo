@@ -32,12 +32,8 @@ func TestRandomAddress(t *testing.T) {
 func TestInitializePackage(t *testing.T) {
 	fmt.Println("TestInitializePackage")
 
-	// load carrier config
-	err := Initialize(configFile)
-	assert.NoError(t, err, "initialize config should not throw error")
-
 	// parse sample request
-	sample, err := ioutil.ReadFile("./package.json")
+	sample, err := ioutil.ReadFile("../package.json")
 	assert.NoError(t, err, "read sample packcage requet should not throw error")
 	req := &PackageRequest{}
 	err = json.Unmarshal(sample, req)
