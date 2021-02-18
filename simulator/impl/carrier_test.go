@@ -69,10 +69,10 @@ func TestRandomTimestamp(t *testing.T) {
 
 	// generate random timestamp
 	tm := randomTimestamp("16:30", "-05:00", 5)
-	v := time.Unix(0, tm*int64(1000000000))
+	v := time.Unix(tm, 0)
 	v = v.In(nyt.Location())
 	diff := math.Abs(float64(v.Minute() - 30))
-	assert.Less(t, diff, float64(5), "random timestamp should be less than 5 minutes")
+	assert.LessOrEqual(t, diff, float64(5), "random timestamp should be less than 5 minutes")
 }
 
 func TestArrivalTime(t *testing.T) {

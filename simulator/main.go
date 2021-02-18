@@ -5,6 +5,7 @@ SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -29,6 +30,7 @@ func init() {
 
 // send sample request
 // curl -X PUT -H "Content-Type: application/json" -d @package.json http://localhost:8081/packages/create
+// curl -X PUT -H "Content-Type: application/json" http://localhost:8081/packages/pickup?uid=84ce7d75aaacf6ce
 
 func main() {
 	flag.Parse()
@@ -73,7 +75,7 @@ func main() {
 
 	// start HTTP listener
 	http.HandleFunc("/", handler)
-	glog.Info("Starting HTTP listener on port", httpPort)
+	glog.Info("Starting HTTP listener on port ", httpPort)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", httpPort), nil); err != nil {
 		glog.Error(err)
 		panic(err)
@@ -109,12 +111,23 @@ func handleShippingRequest(r *http.Request) ([]byte, int, error) {
 		if err != nil {
 			return nil, http.StatusBadRequest, err
 		}
-		glog.Info("Create shipping label", string(data))
+		glog.Info("Create shipping label ", string(data))
 		resp, err := impl.PrintShippingLabel(string(data))
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 		return resp, http.StatusOK, nil
+	} else if r.URL.Path == "/packages/pickup" {
+		uid := r.URL.Query().Get("uid")
+		if len(uid) == 0 {
+			return nil, http.StatusBadRequest, errors.New("package uid is not specified as query parameter")
+		}
+		glog.Info("pickup package", uid)
+		err := impl.PickupPackage(uid)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
+		return []byte("pikup and delivery completed for package " + uid), http.StatusOK, nil
 	}
 	return []byte("to be implemented"), http.StatusOK, nil
 }

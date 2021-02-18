@@ -109,7 +109,7 @@ func TestPickupPackage(t *testing.T) {
 		}
 
 		// simulate package pickup
-		err = pickupPackage(uid)
+		err = PickupPackage(uid)
 		assert.NoError(t, err, "pickup package should not throw exception")
 		break
 	}

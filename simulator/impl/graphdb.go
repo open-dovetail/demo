@@ -6,7 +6,6 @@ package impl
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/yxuco/tgdb"
@@ -237,7 +236,6 @@ func createPackage(graph *GraphManager, pkg *Package) (tgdb.TGNode, error) {
 }
 
 func createContent(graph *GraphManager, cont *Content) (tgdb.TGNode, error) {
-	fmt.Println("create content", cont.UID)
 	node, err := graph.CreateNode("Content")
 	if err != nil {
 		return nil, err
@@ -253,12 +251,10 @@ func createContent(graph *GraphManager, cont *Content) (tgdb.TGNode, error) {
 	if err = graph.InsertEntity(node); err != nil {
 		return nil, err
 	}
-	fmt.Println("inserted content", node.GetAttribute("uid").GetValue())
 	return node, nil
 }
 
 func createAddress(graph *GraphManager, addr *Address) (tgdb.TGNode, error) {
-	fmt.Println("create address", addr.UID)
 	node, err := graph.CreateNode("Address")
 	if err != nil {
 		return nil, err
@@ -275,7 +271,6 @@ func createAddress(graph *GraphManager, addr *Address) (tgdb.TGNode, error) {
 	if err = graph.InsertEntity(node); err != nil {
 		return nil, err
 	}
-	fmt.Println("inserted address", node.GetAttribute("uid").GetValue())
 	return node, nil
 }
 
@@ -288,7 +283,7 @@ func createEdgeOperates(graph *GraphManager, carrier, office tgdb.TGNode) error 
 		return err
 	}
 	_, err = graph.Commit()
-	fmt.Println("committed operates", err)
+
 	return err
 }
 
@@ -301,12 +296,12 @@ func createEdgeSchedules(graph *GraphManager, carrier, route tgdb.TGNode) error 
 		return err
 	}
 	_, err = graph.Commit()
-	fmt.Println("committed schedules", err)
+
 	return err
 }
 
 func createEdgeDeparts(graph *GraphManager, route, office tgdb.TGNode, after time.Time) (time.Time, error) {
-	fmt.Println("create departs", getAttributeAsString(route, "routeNbr"), getAttributeAsString(office, "iata"))
+
 	// calculate random depart time according to route schedule
 	tm := randomTimestamp(getAttributeAsString(route, "schdDepartTime"), getAttributeAsString(office, "gmtOffset"), 5)
 	departTime := time.Unix(tm, 0)
@@ -314,7 +309,6 @@ func createEdgeDeparts(graph *GraphManager, route, office tgdb.TGNode, after tim
 		departTime = correctTimeByDays(departTime, after)
 		tm = departTime.Unix()
 	}
-	fmt.Println("depart time", tm, departTime)
 
 	departs, err := graph.CreateEdge("departs", route, office)
 	if err != nil {
@@ -326,12 +320,11 @@ func createEdgeDeparts(graph *GraphManager, route, office tgdb.TGNode, after tim
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed departs", err)
 	return departTime, err
 }
 
 func createEdgeArrives(graph *GraphManager, route, office tgdb.TGNode, after time.Time) (time.Time, error) {
-	fmt.Println("create arrives", getAttributeAsString(route, "routeNbr"), getAttributeAsString(office, "iata"))
+
 	// calculate random arrival time according to route schedule
 	tm := randomTimestamp(getAttributeAsString(route, "schdArrivalTime"), getAttributeAsString(office, "gmtOffset"), 5)
 	arrivalTime := time.Unix(tm, 0)
@@ -339,7 +332,6 @@ func createEdgeArrives(graph *GraphManager, route, office tgdb.TGNode, after tim
 		arrivalTime = correctTimeByDays(arrivalTime, after)
 		tm = arrivalTime.Unix()
 	}
-	fmt.Println("arrival time", tm, arrivalTime)
 
 	arrives, err := graph.CreateEdge("arrives", route, office)
 	if err != nil {
@@ -351,7 +343,6 @@ func createEdgeArrives(graph *GraphManager, route, office tgdb.TGNode, after tim
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed arrives", err)
 	return arrivalTime, err
 }
 
@@ -366,7 +357,6 @@ func createEdgeBuilds(graph *GraphManager, office, container tgdb.TGNode, eventT
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed builds", err)
 	return err
 }
 
@@ -381,7 +371,6 @@ func createEdgeAssigned(graph *GraphManager, container, route tgdb.TGNode, event
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed assigned", err)
 	return err
 }
 
@@ -401,7 +390,6 @@ func createEdgeContains(graph *GraphManager, parent, child tgdb.TGNode, inTime, 
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed contains", err)
 	return err
 }
 
@@ -416,7 +404,6 @@ func createEdgeSender(graph *GraphManager, pkg, addr tgdb.TGNode, sender string)
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed sender", err)
 	return err
 }
 
@@ -431,7 +418,6 @@ func createEdgeRecipient(graph *GraphManager, pkg, addr tgdb.TGNode, recipient s
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed recipient", err)
 	return err
 }
 
@@ -445,7 +431,6 @@ func createEdgeContainsContent(graph *GraphManager, pkg, cont tgdb.TGNode) error
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed contains content", err)
 	return err
 }
 
@@ -454,10 +439,15 @@ func createEdgePickup(graph *GraphManager, office, pkg tgdb.TGNode, eventTime in
 	if err != nil {
 		return err
 	}
-
+	tevent := &transferEvent{
+		Carrier:   getAttributeAsString(office, "carrier"),
+		Direction: "from",
+		Latitude:  lat,
+		Longitude: lon,
+	}
 	pickup.SetOrCreateAttribute("eventTimestamp", eventTime)
 	pickup.SetOrCreateAttribute("trackingID", tracking)
-	pickup.SetOrCreateAttribute("employeeID", strconv.FormatInt(time.Now().Unix(), 10))
+	pickup.SetOrCreateAttribute("employeeID", createFnvHash(tevent))
 	pickup.SetOrCreateAttribute("longitude", lon)
 	pickup.SetOrCreateAttribute("latitude", lat)
 	if err := graph.InsertEntity(pickup); err != nil {
@@ -465,7 +455,6 @@ func createEdgePickup(graph *GraphManager, office, pkg tgdb.TGNode, eventTime in
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed pickup", err)
 	return err
 }
 
@@ -474,9 +463,14 @@ func createEdgeDelivery(graph *GraphManager, office, pkg tgdb.TGNode, eventTime 
 	if err != nil {
 		return err
 	}
-
+	tevent := &transferEvent{
+		Carrier:   getAttributeAsString(office, "carrier"),
+		Direction: "to",
+		Latitude:  lat,
+		Longitude: lon,
+	}
 	delivery.SetOrCreateAttribute("eventTimestamp", eventTime)
-	delivery.SetOrCreateAttribute("employeeID", strconv.FormatInt(time.Now().Unix(), 10))
+	delivery.SetOrCreateAttribute("employeeID", createFnvHash(tevent))
 	delivery.SetOrCreateAttribute("longitude", lon)
 	delivery.SetOrCreateAttribute("latitude", lat)
 	if err := graph.InsertEntity(delivery); err != nil {
@@ -484,8 +478,14 @@ func createEdgeDelivery(graph *GraphManager, office, pkg tgdb.TGNode, eventTime 
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed delivery", err)
 	return err
+}
+
+type transferEvent struct {
+	Carrier   string  `json:"carrier"`
+	Direction string  `json:"direction"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 func createEdgeTransfers(graph *GraphManager, office, pkg tgdb.TGNode, eventTime int64, tracking string, lat, lon float64, direction string) error {
@@ -494,10 +494,16 @@ func createEdgeTransfers(graph *GraphManager, office, pkg tgdb.TGNode, eventTime
 		return err
 	}
 
+	tevent := &transferEvent{
+		Carrier:   getAttributeAsString(office, "carrier"),
+		Direction: direction,
+		Latitude:  lat,
+		Longitude: lon,
+	}
 	transfers.SetOrCreateAttribute("eventTimestamp", eventTime)
 	transfers.SetOrCreateAttribute("direction", direction)
 	transfers.SetOrCreateAttribute("trackingID", tracking)
-	transfers.SetOrCreateAttribute("employeeID", strconv.FormatInt(time.Now().Unix(), 10))
+	transfers.SetOrCreateAttribute("employeeID", createFnvHash(tevent))
 	transfers.SetOrCreateAttribute("longitude", lon)
 	transfers.SetOrCreateAttribute("latitude", lat)
 	if err := graph.InsertEntity(transfers); err != nil {
@@ -505,7 +511,6 @@ func createEdgeTransfers(graph *GraphManager, office, pkg tgdb.TGNode, eventTime
 	}
 
 	_, err = graph.Commit()
-	fmt.Println("committed transfers", err)
 	return err
 }
 
@@ -871,50 +876,50 @@ func handlePickup(graph *GraphManager, pkg *PackageInfo, office *Office) (time.T
 
 	// calculate local pickup time based on its distance from the origin office
 	pickupDelay := localDelayHours(pkg.From.Latitude, pkg.From.Longitude, office)
-	pickupTime := estimatePUDTime(office.GMTOffset, pickupDelay)
+	pickupTime, arrivalTime, err := localPickup(graph, pickupDelay, origin, node)
+	if err != nil {
+		return time.Time{}, err
+	}
 	err = createEdgePickup(graph, origin, node, pickupTime.Unix(), pkg.UID, pkg.From.Latitude, pkg.From.Longitude)
 	if err != nil {
 		return time.Time{}, err
 	}
-	arrivalTime, err := localPickup(graph, pickupTime, origin, node)
-	if err != nil {
-		return arrivalTime, err
-	}
 	return originRoute(graph, arrivalTime, origin, node)
 }
 
-// update local truck pickup and return the time for truck to arrive at the origin office
-func localPickup(graph *GraphManager, pickupTime time.Time, origin, pkg tgdb.TGNode) (time.Time, error) {
+// update local truck pickup and return pickup time and the time for truck to arrive at the origin office
+func localPickup(graph *GraphManager, pickupDelay float64, origin, pkg tgdb.TGNode) (time.Time, time.Time, error) {
 
 	// get the local route
 	iata := getAttributeAsString(origin, "iata")
 	query := fmt.Sprintf("gremlin://g.V().has('Route','fromIata','%s').has('Route','type','G').values('routeNbr');", iata)
 	data, err := graph.Query(query)
 	if err != nil || len(data) == 0 {
-		return time.Time{}, fmt.Errorf("no local route found at %s", iata)
+		return time.Time{}, time.Time{}, fmt.Errorf("no local route found at %s", iata)
 	}
 	routeNbr := data[0].(string)
 	route, err := graph.GetNodeByKey("Route", map[string]interface{}{"routeNbr": routeNbr})
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, time.Time{}, err
 	}
 
-	// get last arrival time of the local route
-	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('arrives').order().by('eventTimestamp', desc).values('eventTimestamp').limit(1);", routeNbr)
+	// get last depart time of the local route
+	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('departs').order().by('eventTimestamp', desc).values('eventTimestamp').limit(1);", routeNbr)
 	data, err = graph.Query(query)
 	if err != nil || len(data) == 0 {
-		return time.Time{}, fmt.Errorf("pickup route arrival time not found for %s", routeNbr)
+		return time.Time{}, time.Time{}, fmt.Errorf("pickup route arrival time not found for %s", routeNbr)
 	}
-	arrivalTime := data[0].(time.Time)
+	departTime := data[0].(time.Time)
 
-	if arrivalTime.Before(pickupTime) {
+	var arrivalTime time.Time
+	if departTime.Before(time.Now()) {
 		// last route time is old, so create new pickup route depart and arrival for a new day
-		departTime, err := createEdgeDeparts(graph, route, origin, time.Now())
+		departTime, err = createEdgeDeparts(graph, route, origin, time.Now())
 		if err != nil {
-			return time.Time{}, err
+			return time.Time{}, time.Time{}, err
 		}
 		if arrivalTime, err = createEdgeArrives(graph, route, origin, departTime); err != nil {
-			return time.Time{}, err
+			return time.Time{}, time.Time{}, err
 		}
 	}
 
@@ -927,17 +932,18 @@ func localPickup(graph *GraphManager, pickupTime time.Time, origin, pkg tgdb.TGN
 	}
 	data, err = graph.Query(query)
 	if err != nil || len(data) == 0 {
-		return arrivalTime, fmt.Errorf("no container found for %s and %s", routeNbr, product)
+		return time.Time{}, arrivalTime, fmt.Errorf("no container found for %s and %s", routeNbr, product)
 	}
 	uid := data[0].(string)
 	cons, err := graph.GetNodeByKey("Container", map[string]interface{}{"uid": uid})
 	if err != nil {
-		return arrivalTime, err
+		return time.Time{}, arrivalTime, err
 	}
 
 	// add package to the parent container
+	pickupTime := departTime.Add(time.Minute * time.Duration(int(pickupDelay*60)))
 	err = createEdgeContains(graph, cons, pkg, pickupTime.Unix(), arrivalTime.Unix(), "P")
-	return arrivalTime, err
+	return pickupTime, arrivalTime, err
 }
 
 // update origin route to hub and return the time for plane to arrive at the hub
@@ -1051,7 +1057,8 @@ func handleTransfer(graph *GraphManager, pkg *PackageInfo, originHub, destHub *O
 	if err != nil {
 		return fmt.Errorf("office node is not found for %s %s", destHub.Carrier, destHub.Iata)
 	}
-	return createEdgeTransfers(graph, dest, node, hubTime.Unix(), pkg.UID, destHub.Latitude, destHub.Longitude, "to")
+	ackTime := hubTime.Add(time.Second * time.Duration(30))
+	return createEdgeTransfers(graph, dest, node, ackTime.Unix(), pkg.UID, destHub.Latitude, destHub.Longitude, "to")
 }
 
 // update graph for package delivery from hub to the specified destination office
@@ -1077,16 +1084,12 @@ func handleDelivery(graph *GraphManager, pkg *PackageInfo, office *Office, hubTi
 
 	// calculate local delivery time based on its distance from the destination office
 	deliveryDelay := localDelayHours(pkg.To.Latitude, pkg.To.Longitude, office)
-	deliveryTime := estimatePUDTime(office.GMTOffset, deliveryDelay)
-	if deliveryTime.Before(arrivalTime) {
-		// correct delivery time by adding days
-		deliveryTime = correctTimeByDays(deliveryTime, arrivalTime)
+	deliveryTime, err := localDelivery(graph, arrivalTime, deliveryDelay, dest, node)
+	if err != nil {
+		return deliveryTime, err
 	}
 	err = createEdgeDelivery(graph, dest, node, deliveryTime.Unix(), pkg.To.Latitude, pkg.To.Longitude)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return localDelivery(graph, arrivalTime, deliveryTime, dest, node)
+	return deliveryTime, err
 }
 
 // update delivery route from hub and return the time for plane to arrive at the dest office
@@ -1170,7 +1173,7 @@ func deliveryRoute(graph *GraphManager, hubTime time.Time, dest, pkg tgdb.TGNode
 }
 
 // update local truck delivery and return the package delivery time
-func localDelivery(graph *GraphManager, arrivalTime, deliveryTime time.Time, dest, pkg tgdb.TGNode) (time.Time, error) {
+func localDelivery(graph *GraphManager, arrivalTime time.Time, deliveryDelay float64, dest, pkg tgdb.TGNode) (time.Time, error) {
 
 	// get the local route
 	iata := getAttributeAsString(dest, "iata")
@@ -1195,7 +1198,7 @@ func localDelivery(graph *GraphManager, arrivalTime, deliveryTime time.Time, des
 
 	if departTime.Before(arrivalTime) {
 		// last route time is old, so create new delivery route depart and arrival for a new day
-		departTime, err := createEdgeDeparts(graph, route, dest, arrivalTime)
+		departTime, err = createEdgeDeparts(graph, route, dest, arrivalTime)
 		if err != nil {
 			return time.Time{}, err
 		}
@@ -1221,28 +1224,7 @@ func localDelivery(graph *GraphManager, arrivalTime, deliveryTime time.Time, des
 		return arrivalTime, err
 	}
 	// add package to the parent container
+	deliveryTime := departTime.Add(time.Minute * time.Duration(int(deliveryDelay*60)))
 	err = createEdgeContains(graph, cons, pkg, departTime.Unix(), deliveryTime.Unix(), "P")
 	return deliveryTime, err
-}
-
-func edgeQuery(conn tgdb.TGConnection) {
-	memberName := "Napoleon Bonaparte"
-	fmt.Printf("\n*** edgeQuery %s\n", memberName)
-	query := fmt.Sprintf("gremlin://g.V().has('houseMemberType', 'memberName', '%s').bothE();", memberName)
-	rset, err := conn.ExecuteQuery(query, nil)
-	if err != nil {
-		fmt.Printf("query error: %v\n", err)
-	}
-	for rset.HasNext() {
-		edge := rset.Next().(tgdb.TGEdge)
-		fmt.Println("Edge")
-		attrs, _ := edge.GetAttributes()
-		for _, a := range attrs {
-			fmt.Printf("\tattribute %s -> %v\n", a.GetName(), a.GetValue())
-		}
-		n := edge.GetVertices()
-		for i, v := range n {
-			fmt.Printf("\tnode %d: %d\n", i, v.GetVirtualId())
-		}
-	}
 }

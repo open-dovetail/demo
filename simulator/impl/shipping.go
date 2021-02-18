@@ -178,8 +178,10 @@ func initializePackage(req *PackageRequest) (*Package, error) {
 	pkg.UID = createFnvHash(pkg)
 	pickupTime := estimatePUDTime(origin.GMTOffset, pickupDelay)
 	deliveryTime := estimatePUDTime(dest.GMTOffset, deliveryDelay)
-	deliveryTime = correctTimeByDays(deliveryTime, pickupTime)
-
+	dd := pickupTime.YearDay() - deliveryTime.YearDay() + 1
+	if dd > 0 {
+		deliveryTime = deliveryTime.Add(time.Hour * time.Duration(dd*24))
+	}
 	pkg.EstPickupTime = pickupTime.Format(time.RFC3339)
 	pkg.EstDeliveryTime = deliveryTime.Format(time.RFC3339)
 
@@ -308,8 +310,8 @@ func readQRCode(png []byte) (string, error) {
 	return result.GetText(), nil
 }
 
-// simulate pickup of a package of specified uid
-func pickupPackage(packageID string) error {
+// PickupPackage simulates pickup of a package of specified uid
+func PickupPackage(packageID string) error {
 
 	graph, err := GetTGConnection()
 	if err != nil {
