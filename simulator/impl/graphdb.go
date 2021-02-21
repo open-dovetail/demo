@@ -6,6 +6,7 @@ package impl
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/yxuco/tgdb"
@@ -481,6 +482,26 @@ func createEdgeDelivery(graph *GraphManager, office, pkg tgdb.TGNode, eventTime 
 	return err
 }
 
+func createEdgeMeasures(graph *GraphManager, cons, thr tgdb.TGNode, measurement *Measurement) error {
+	measures, err := graph.CreateEdge("measures", cons, thr)
+	if err != nil {
+		return err
+	}
+
+	measures.SetOrCreateAttribute("startTimestamp", measurement.PeriodStart.Unix())
+	measures.SetOrCreateAttribute("eventTimestamp", measurement.PeriodEnd.Unix())
+	measures.SetOrCreateAttribute("minValue", measurement.MinValue)
+	measures.SetOrCreateAttribute("maxValue", measurement.MaxValue)
+	measures.SetOrCreateAttribute("uom", "C")
+	measures.SetOrCreateAttribute("violated", measurement.InViolation)
+	if err := graph.InsertEntity(measures); err != nil {
+		return err
+	}
+
+	_, err = graph.Commit()
+	return err
+}
+
 type transferEvent struct {
 	Carrier   string  `json:"carrier"`
 	Direction string  `json:"direction"`
@@ -763,8 +784,8 @@ type PackageInfo struct {
 	To            *AddressInfo
 }
 
-func getAttributeAsString(node tgdb.TGNode, name string) string {
-	attr := node.GetAttribute(name)
+func getAttributeAsString(entity tgdb.TGEntity, name string) string {
+	attr := entity.GetAttribute(name)
 	var result interface{}
 	if attr != nil {
 		result = attr.GetValue()
@@ -778,8 +799,23 @@ func getAttributeAsString(node tgdb.TGNode, name string) string {
 	return fmt.Sprintf("%v", result)
 }
 
-func getAttributeAsDouble(node tgdb.TGNode, name string) float64 {
-	attr := node.GetAttribute(name)
+func getAttributeAsBool(entity tgdb.TGEntity, name string) bool {
+	attr := entity.GetAttribute(name)
+	var result interface{}
+	if attr != nil {
+		result = attr.GetValue()
+	}
+	if result == nil {
+		return false
+	}
+	if v, ok := result.(bool); ok {
+		return v
+	}
+	return false
+}
+
+func getAttributeAsDouble(entity tgdb.TGEntity, name string) float64 {
+	attr := entity.GetAttribute(name)
 	var result interface{}
 	if attr != nil {
 		result = attr.GetValue()
@@ -855,6 +891,70 @@ func queryOffice(graph *GraphManager, carrier, iata string) (tgdb.TGNode, error)
 	return graph.GetNodeByKey("Office", key)
 }
 
+// query package detail of a specified package-ID
+func queryPackageDetail(graph *GraphManager, packageID string) (*PackageRequest, error) {
+	key := map[string]interface{}{
+		"uid": packageID,
+	}
+	node, err := graph.GetNodeByKey("Package", key)
+	if err != nil || node == nil {
+		fmt.Println("failed to find package", packageID, err)
+		return nil, err
+	}
+	result := &PackageRequest{
+		UID:        packageID,
+		HandlingCd: getAttributeAsString(node, "handlingCd"),
+		Height:     getAttributeAsDouble(node, "height"),
+		Width:      getAttributeAsDouble(node, "width"),
+		Depth:      getAttributeAsDouble(node, "depth"),
+		Weight:     getAttributeAsDouble(node, "weight"),
+	}
+
+	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').outE('sender').values('name');", packageID)
+	if nodes, err := graph.Query(query); err == nil && len(nodes) > 0 {
+		result.Sender = nodes[0].(string)
+	}
+
+	query = fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').outE('recipient').values('name');", packageID)
+	if nodes, err := graph.Query(query); err == nil && len(nodes) > 0 {
+		result.Recipient = nodes[0].(string)
+	}
+
+	if addr, err := queryAddress(graph, packageID, "sender"); err == nil {
+		result.From = addr
+	}
+	if addr, err := queryAddress(graph, packageID, "recipient"); err == nil {
+		result.To = addr
+	}
+	return result, nil
+}
+
+// query sender/recipient address of a specified package
+func queryAddress(graph *GraphManager, packageID, addressType string) (*Address, error) {
+	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').outE('%s').inV();", packageID, addressType)
+	nodes, err := graph.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	if len(nodes) < 1 {
+		return nil, fmt.Errorf("%s address not found", addressType)
+	}
+	node, ok := nodes[0].(tgdb.TGNode)
+	if !ok {
+		return nil, fmt.Errorf("query result %T is not a tgdb.TGNode", nodes[0])
+	}
+
+	return &Address{
+		Street:        getAttributeAsString(node, "street"),
+		City:          getAttributeAsString(node, "city"),
+		StateProvince: getAttributeAsString(node, "stateProvince"),
+		PostalCd:      getAttributeAsString(node, "postalCd"),
+		Country:       getAttributeAsString(node, "country"),
+		Longitude:     getAttributeAsDouble(node, "longitude"),
+		Latitude:      getAttributeAsDouble(node, "latitude"),
+	}, nil
+}
+
 // update graph for package pickup at specified office and send to its hub office, return the time when plane arrives at the hub
 func handlePickup(graph *GraphManager, pkg *PackageInfo, office *Office) (time.Time, error) {
 	var err error
@@ -880,9 +980,17 @@ func handlePickup(graph *GraphManager, pkg *PackageInfo, office *Office) (time.T
 	if err != nil {
 		return time.Time{}, err
 	}
-	err = createEdgePickup(graph, origin, node, pickupTime.Unix(), pkg.UID, pkg.From.Latitude, pkg.From.Longitude)
-	if err != nil {
+	if err := createEdgePickup(graph, origin, node, pickupTime.Unix(), pkg.UID, pkg.From.Latitude, pkg.From.Longitude); err != nil {
 		return time.Time{}, err
+	}
+	if pkg.HandlingCd == "P" && IsMonitored(pkg.Product) {
+		// record it on blockchain
+		if req, err := queryPackageDetail(graph, pkg.UID); err == nil {
+			err := sendPackagePickup(office.Carrier, pkg.UID, pickupTime, req)
+			if err != nil {
+				fmt.Println("Failed to send blockchain request for pickup", err)
+			}
+		}
 	}
 	return originRoute(graph, arrivalTime, origin, node)
 }
@@ -940,6 +1048,15 @@ func localPickup(graph *GraphManager, pickupDelay float64, origin, pkg tgdb.TGNo
 		return time.Time{}, arrivalTime, err
 	}
 
+	// add simulated temperature measurement
+	if handling == "P" && IsMonitored(product) {
+		createMonitorMeasurements(graph, cons,
+			getAttributeAsString(route, "schdDepartTime"),
+			getAttributeAsString(route, "schdArrivalTime"),
+			getAttributeAsString(origin, "gmtOffset"),
+			getAttributeAsString(origin, "gmtOffset"))
+	}
+
 	// add package to the parent container
 	pickupTime := departTime.Add(time.Minute * time.Duration(int(pickupDelay*60)))
 	err = createEdgeContains(graph, cons, pkg, pickupTime.Unix(), arrivalTime.Unix(), "P")
@@ -985,19 +1102,21 @@ func originRoute(graph *GraphManager, arrivalTime time.Time, origin, pkg tgdb.TG
 		}
 	}
 
+	// retrieve hub office
+	carrier := getAttributeAsString(origin, "carrier")
+	toIata := getAttributeAsString(route, "toIata")
+	var hub tgdb.TGNode
+	key := map[string]interface{}{
+		"iata":    toIata,
+		"carrier": carrier,
+	}
+	hub, err = graph.GetNodeByKey("Office", key)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("hub office node is not found for %s %s", carrier, toIata)
+	}
+
 	if hubTime.Before(departTime) {
 		// last route time is old, so create origin route arrival for a new day
-		carrier := getAttributeAsString(origin, "carrier")
-		toIata := getAttributeAsString(route, "toIata")
-		var hub tgdb.TGNode
-		key := map[string]interface{}{
-			"iata":    toIata,
-			"carrier": carrier,
-		}
-		hub, err = graph.GetNodeByKey("Office", key)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("hub office node is not found for %s %s", carrier, toIata)
-		}
 		if hubTime, err = createEdgeArrives(graph, route, hub, departTime); err != nil {
 			return time.Time{}, err
 		}
@@ -1019,6 +1138,15 @@ func originRoute(graph *GraphManager, arrivalTime time.Time, origin, pkg tgdb.TG
 	cons, err := graph.GetNodeByKey("Container", map[string]interface{}{"uid": uid})
 	if err != nil {
 		return hubTime, err
+	}
+
+	// add simulated temperature measurement
+	if handling == "P" && IsMonitored(product) {
+		createMonitorMeasurements(graph, cons,
+			getAttributeAsString(route, "schdDepartTime"),
+			getAttributeAsString(route, "schdArrivalTime"),
+			getAttributeAsString(origin, "gmtOffset"),
+			getAttributeAsString(hub, "gmtOffset"))
 	}
 
 	// add package to the parent container
@@ -1044,8 +1172,7 @@ func handleTransfer(graph *GraphManager, pkg *PackageInfo, originHub, destHub *O
 	if err != nil {
 		return fmt.Errorf("package node is not found for %s", pkg.UID)
 	}
-	err = createEdgeTransfers(graph, origin, node, hubTime.Unix(), pkg.UID, originHub.Latitude, originHub.Longitude, "from")
-	if err != nil {
+	if err := createEdgeTransfers(graph, origin, node, hubTime.Unix(), pkg.UID, originHub.Latitude, originHub.Longitude, "from"); err != nil {
 		return err
 	}
 
@@ -1058,7 +1185,20 @@ func handleTransfer(graph *GraphManager, pkg *PackageInfo, originHub, destHub *O
 		return fmt.Errorf("office node is not found for %s %s", destHub.Carrier, destHub.Iata)
 	}
 	ackTime := hubTime.Add(time.Second * time.Duration(30))
-	return createEdgeTransfers(graph, dest, node, ackTime.Unix(), pkg.UID, destHub.Latitude, destHub.Longitude, "to")
+	if err := createEdgeTransfers(graph, dest, node, ackTime.Unix(), pkg.UID, destHub.Latitude, destHub.Longitude, "to"); err != nil {
+		return err
+	}
+
+	if pkg.HandlingCd == "P" && IsMonitored(pkg.Product) {
+		// record it on blockchain
+		if err := sendPackageTransfer(originHub.Carrier, destHub.Carrier, pkg.UID, hubTime, originHub.Latitude, originHub.Longitude); err != nil {
+			fmt.Println("Failed to send blockchain request for transfer", err)
+		}
+		if err := sendPackageTransferAck(originHub.Carrier, destHub.Carrier, pkg.UID, ackTime, destHub.Latitude, destHub.Longitude); err != nil {
+			fmt.Println("Failed to send blockchain request for transfer ack", err)
+		}
+	}
+	return nil
 }
 
 // update graph for package delivery from hub to the specified destination office
@@ -1088,8 +1228,17 @@ func handleDelivery(graph *GraphManager, pkg *PackageInfo, office *Office, hubTi
 	if err != nil {
 		return deliveryTime, err
 	}
-	err = createEdgeDelivery(graph, dest, node, deliveryTime.Unix(), pkg.To.Latitude, pkg.To.Longitude)
-	return deliveryTime, err
+	if err := createEdgeDelivery(graph, dest, node, deliveryTime.Unix(), pkg.To.Latitude, pkg.To.Longitude); err != nil {
+		return deliveryTime, err
+	}
+	if pkg.HandlingCd == "P" && IsMonitored(pkg.Product) {
+		// record it on blockchain
+		err := sendPackageDelivery(office.Carrier, pkg.UID, deliveryTime, pkg.To.Latitude, pkg.To.Longitude)
+		if err != nil {
+			fmt.Println("Failed to send blockchain request for delivery", err)
+		}
+	}
+	return deliveryTime, nil
 }
 
 // update delivery route from hub and return the time for plane to arrive at the dest office
@@ -1124,19 +1273,21 @@ func deliveryRoute(graph *GraphManager, hubTime time.Time, dest, pkg tgdb.TGNode
 	}
 	arrivalTime := data[0].(time.Time)
 
+	// retrieve hub office
+	carrier := getAttributeAsString(dest, "carrier")
+	fromIata := getAttributeAsString(route, "fromIata")
+	var hub tgdb.TGNode
+	key := map[string]interface{}{
+		"iata":    fromIata,
+		"carrier": carrier,
+	}
+	hub, err = graph.GetNodeByKey("Office", key)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("hub office node is not found for %s %s", carrier, fromIata)
+	}
+
 	if departTime.Before(hubTime) {
 		// last route time is old, so create destination route depart for a new day
-		carrier := getAttributeAsString(dest, "carrier")
-		fromIata := getAttributeAsString(route, "fromIata")
-		var hub tgdb.TGNode
-		key := map[string]interface{}{
-			"iata":    fromIata,
-			"carrier": carrier,
-		}
-		hub, err = graph.GetNodeByKey("Office", key)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("hub office node is not found for %s %s", carrier, fromIata)
-		}
 		if departTime, err = createEdgeDeparts(graph, route, hub, hubTime); err != nil {
 			return time.Time{}, err
 		}
@@ -1165,6 +1316,15 @@ func deliveryRoute(graph *GraphManager, hubTime time.Time, dest, pkg tgdb.TGNode
 	cons, err := graph.GetNodeByKey("Container", map[string]interface{}{"uid": uid})
 	if err != nil {
 		return arrivalTime, err
+	}
+
+	// add simulated temperature measurement
+	if handling == "P" && IsMonitored(product) {
+		createMonitorMeasurements(graph, cons,
+			getAttributeAsString(route, "schdDepartTime"),
+			getAttributeAsString(route, "schdArrivalTime"),
+			getAttributeAsString(hub, "gmtOffset"),
+			getAttributeAsString(dest, "gmtOffset"))
 	}
 
 	// add package to the parent container
@@ -1223,8 +1383,74 @@ func localDelivery(graph *GraphManager, arrivalTime time.Time, deliveryDelay flo
 	if err != nil {
 		return arrivalTime, err
 	}
+
+	// add simulated temperature measurement
+	if handling == "P" && IsMonitored(product) {
+		gmtOffset := getAttributeAsString(dest, "gmtOffset")
+		createMonitorMeasurements(graph, cons,
+			getAttributeAsString(route, "schdDepartTime"),
+			getAttributeAsString(route, "schdArrivalTime"),
+			gmtOffset, gmtOffset)
+	}
+
 	// add package to the parent container
 	deliveryTime := departTime.Add(time.Minute * time.Duration(int(deliveryDelay*60)))
 	err = createEdgeContains(graph, cons, pkg, departTime.Unix(), deliveryTime.Unix(), "P")
 	return deliveryTime, err
+}
+
+// generate monitoring events if a container is monitored by a specified threshold
+func createMonitorMeasurements(graph *GraphManager, cons tgdb.TGNode, schdDepart, schdArrival, departGmtOffset, arrivalGmtOffset string) error {
+	monitor := getAttributeAsString(cons, "monitor")
+	if len(monitor) == 0 {
+		// ignore if container is not monitored
+		return nil
+	}
+	threshold, err := graph.GetNodeByKey("Threshold", map[string]interface{}{"name": monitor})
+	if err != nil || threshold == nil {
+		// ignore if no threshold is found
+		return nil
+	}
+	minValue := getAttributeAsDouble(threshold, "minValue")
+	maxValue := getAttributeAsDouble(threshold, "maxValue")
+
+	// monitor the periods of the next 3 days
+	for d := 0; d < 3; d++ {
+		monitorStart, monitorEnd := measurementPeriod(schdDepart, schdArrival, departGmtOffset, arrivalGmtOffset, d)
+
+		if containerIsMonitored(getAttributeAsString(cons, "uid"), monitorEnd) {
+			// skip if the container measurement already exist in TGDB
+			continue
+		}
+		measures := randomThresholdViolation(monitorStart, monitorEnd, minValue, maxValue, 0.5)
+		for _, m := range measures {
+			// create edge measures from cons to threshold
+			err := createEdgeMeasures(graph, cons, threshold, m)
+			if err != nil {
+				fmt.Println("failed to create measurement", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func containerIsMonitored(consUID string, monitorEnd time.Time) bool {
+	// query last monitor end time
+	query := fmt.Sprintf("gremlin://g.V().has('Container','uid','%s').outE('measures').order().by('eventTimestamp',desc).limit(1).values('eventTimestamp');", consUID)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return false
+	}
+	lastMonitorTime := data[0].(time.Time)
+
+	// consider monitored if monitor date is ealier than last monitored date
+	if lastMonitorTime.YearDay() > monitorEnd.YearDay() {
+		return true
+	}
+	// consider them equivalent if time difference is within 1 hour
+	if math.Abs(monitorEnd.Sub(lastMonitorTime).Hours()) < 1 {
+		return true
+	}
+	return false
 }

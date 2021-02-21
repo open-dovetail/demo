@@ -59,6 +59,15 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "tcp://127.0.0.1:8222/{dbName=shipdb}", GraphDBConfig.URL, "GraphDB should be configured to shipdb")
 	assert.Equal(t, "scott", GraphDBConfig.User, "graphdb user should be configured as 'scott'")
 	assert.Equal(t, "scott", GraphDBConfig.Passwd, "graphdb password should be configured as 'scott'")
+
+	// verify fabric config parameters
+	assert.Equal(t, "http://localhost:7979", FabricConfig.BlockchainService, "blockchain service url should be configured")
+	assert.Equal(t, "iot@org1", FabricConfig.BlockchainUser, "Blockchain user for monitoring should be configured")
+	assert.Equal(t, "shipping/pickuppackage", FabricConfig.Pickup, "pickup request should be configured")
+	assert.Equal(t, "shipping/transferpackage", FabricConfig.Transfer, "transfer request should be configured")
+	assert.Equal(t, "shipping/transferpackageack", FabricConfig.TransferAck, "transfer ack request should be configured")
+	assert.Equal(t, "shipping/deliverpackage", FabricConfig.Delivery, "delivery request should be configured")
+	assert.Equal(t, "shipping/updatetemperature", FabricConfig.UpdateTemperature, "temperature update request should be configured")
 }
 
 func TestRandomTimestamp(t *testing.T) {

@@ -57,7 +57,7 @@ func TestInitializePackage(t *testing.T) {
 
 	// verify hash IDs
 	assert.Equal(t, "PfizerVaccine", pkg.Product, "product should be 'PfizerVaccine'")
-	assert.Equal(t, 16, len(pkg.UID), "package UID should contain 16 characters")
+	assert.LessOrEqual(t, 16, len(pkg.UID), "package UID should contain 16 characters")
 	assert.Equal(t, "e6b1c21e124125cb", pkg.From.UID, "origin address UID should match address hash")
 	assert.Equal(t, "9f257b22f6fb558b", pkg.To.UID, "destination address UID should match address hash")
 
@@ -70,4 +70,19 @@ func TestInitializePackage(t *testing.T) {
 	err = json.Unmarshal([]byte(data), &qrdata)
 	assert.NoError(t, err, "QR code should contain a valid JSON object")
 	assert.Equal(t, pkg.UID, qrdata["uid"].(string), "QR Code uid should match package ID")
+}
+
+func TestRandomThresholdViolation(t *testing.T) {
+	start := time.Now()
+	end := start.Add(time.Hour * time.Duration(2))
+	measures := randomThresholdViolation(start, end, -80, -50, 0.5)
+	if len(measures) > 1 {
+		// assert violation period
+		violation := measures[1]
+		assert.True(t, violation.InViolation, "second period should be in violation")
+		assert.Less(t, float64(-50), violation.MaxValue, "violation value should be greater than -50")
+	}
+	// assert first period
+	assert.False(t, measures[0].InViolation, "first period should not be in violation")
+	assert.GreaterOrEqual(t, float64(-50), measures[0].MaxValue, "normal value should be less than -50")
 }

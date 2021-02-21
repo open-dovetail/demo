@@ -114,3 +114,49 @@ func TestPickupPackage(t *testing.T) {
 		break
 	}
 }
+
+func TestCreateMonitorMeasurements(t *testing.T) {
+	fmt.Println("TestCreateMonitorMeasurements")
+
+	graph, err := GetTGConnection()
+	assert.NoError(t, err, "connect to TGDB should not throw error")
+
+	// get local container for 'PfizerVaccine'
+	query := "gremlin://g.V().has('Route','fromIata','ATL').has('Route','type','G').inE('assigned').outV().out().has('Container','monitor','PfizerVaccine').values('uid');"
+	data, err := graph.Query(query)
+	assert.NoError(t, err, "query container uid should not throw error")
+
+	consUID := data[0].(string)
+	cons, err := graph.GetNodeByKey("Container", map[string]interface{}{"uid": consUID})
+	assert.NoError(t, err, "retrieve container should not throw error")
+
+	err = createMonitorMeasurements(graph, cons, "08:00", "15:00", "-05:00", "-05:00")
+	assert.NoError(t, err, "create monitoring measurements should not throw error")
+
+	// verify measurements
+	threshold, err := graph.GetNodeByKey("Threshold", map[string]interface{}{"name": "PfizerVaccine"})
+	assert.NoError(t, err, "retrieve threshold should not throw error")
+	thrValue := getAttributeAsDouble(threshold, "maxValue")
+
+	query = fmt.Sprintf("gremlin://g.V().has('Container','uid','%s').outE('measures').order().by('startTimestamp');", consUID)
+	data, err = graph.Query(query)
+	assert.NoError(t, err, "query container uid should not throw error")
+	size := len(data)
+	assert.GreaterOrEqual(t, size, 3, "more than 3 measures should be created")
+	for _, edge := range data {
+		m := edge.(tgdb.TGEdge)
+		if getAttributeAsBool(m, "violated") {
+			assert.Greater(t, getAttributeAsDouble(m, "minValue"), thrValue, "violated measurement should be greater than threshold")
+		} else {
+			assert.LessOrEqual(t, getAttributeAsDouble(m, "maxValue"), thrValue, "normal measurement should be greater than threshold")
+		}
+	}
+
+	// resend request should not create new measures
+	err = createMonitorMeasurements(graph, cons, "08:00", "15:00", "-05:00", "-05:00")
+	assert.NoError(t, err, "create monitoring measurements should not throw error")
+	query = fmt.Sprintf("gremlin://g.V().has('Container','uid','%s').outE('measures').order().by('startTimestamp');", consUID)
+	data, err = graph.Query(query)
+	assert.NoError(t, err, "query container uid should not throw error")
+	assert.Equal(t, size, len(data), "resend same monitoring request should not create more measures")
+}

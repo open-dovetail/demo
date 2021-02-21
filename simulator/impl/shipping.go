@@ -12,8 +12,10 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"io/ioutil"
 	"math"
 	"math/rand"
+	"net/http"
 	"time"
 
 	"github.com/makiuchi-d/gozxing"
@@ -73,7 +75,7 @@ type PackageRequest struct {
 	Width        float64  `json:"width"`
 	Depth        float64  `json:"depth"`
 	Weight       float64  `json:"weight"`
-	DryIceWeight float64  `json:"dry-ice-weight"`
+	DryIceWeight float64  `json:"dry-ice-weight,omitempty"`
 	Sender       string   `json:"sender"`
 	From         *Address `json:"from"`
 	Recipient    string   `json:"recipient"`
@@ -353,4 +355,262 @@ func PickupPackage(packageID string) error {
 	_, err = handleDelivery(graph, pkg, destOffice, hubTime)
 
 	return err
+}
+
+// Measurement is randomly generated measurement against a threshold
+type Measurement struct {
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+	MinValue    float64
+	MaxValue    float64
+	InViolation bool
+}
+
+// randomly generate a period of threshold violation covering 1% of the total period. violationRate is the rate for including a violation period.
+func randomThresholdViolation(periodStart, periodEnd time.Time, minValue, maxValue float64, violationRate float64) []*Measurement {
+	startSecond := periodStart.Unix()
+	endSecond := periodEnd.Unix()
+
+	var violation *Measurement
+	violationPeriod := (endSecond - startSecond) / 100
+	if rand.Float64() < violationRate && violationPeriod > 0 {
+		violationStart := startSecond + int64(rand.Float64()*float64(endSecond-startSecond))
+		violation = &Measurement{
+			PeriodStart: time.Unix(violationStart, 0),
+			PeriodEnd:   time.Unix(violationStart+violationPeriod, 0),
+			InViolation: true,
+		}
+		violation.MinValue, violation.MaxValue = randomMeasurementRange(maxValue, 2*maxValue-minValue)
+	}
+
+	var result []*Measurement
+	if violation == nil {
+		// do not generate violation period
+		m := &Measurement{
+			PeriodStart: periodStart,
+			PeriodEnd:   periodEnd,
+			InViolation: false,
+		}
+		m.MinValue, m.MaxValue = randomMeasurementRange(minValue, maxValue)
+		result = append(result, m)
+	} else {
+		if periodStart.Before(violation.PeriodStart) {
+			m := &Measurement{
+				PeriodStart: periodStart,
+				PeriodEnd:   violation.PeriodStart,
+				InViolation: false,
+			}
+			m.MinValue, m.MaxValue = randomMeasurementRange(minValue, maxValue)
+			result = append(result, m)
+		}
+		result = append(result, violation)
+		if violation.PeriodEnd.Before(periodEnd) {
+			m := &Measurement{
+				PeriodStart: violation.PeriodEnd,
+				PeriodEnd:   periodEnd,
+				InViolation: false,
+			}
+			m.MinValue, m.MaxValue = randomMeasurementRange(minValue, maxValue)
+			result = append(result, m)
+		}
+	}
+	return result
+}
+
+func randomMeasurementRange(minValue, maxValue float64) (float64, float64) {
+	nv1 := minValue + rand.Float64()*(maxValue-minValue)
+	nv1 = math.Round(nv1*100) / 100
+	nv2 := minValue + rand.Float64()*(maxValue-minValue)
+	nv2 = math.Round(nv2*100) / 100
+	if nv1 < nv2 {
+		return nv1, nv2
+	}
+	return nv2, nv1
+}
+
+// returns measurement start and end time for simulation of a container on the day after today
+func measurementPeriod(schdDepart, schdArrival, departGmtOffset, arrivalGmtOffset string, delayOfDay int) (time.Time, time.Time) {
+	depart := scheduledTimeOfDay(schdDepart, departGmtOffset, delayOfDay)
+	depart = depart.Add(time.Hour * time.Duration(-1))
+	arrival := scheduledTimeOfDay(schdArrival, arrivalGmtOffset, delayOfDay)
+	arrival = arrival.Add(time.Hour * time.Duration(1))
+
+	return depart, arrival
+}
+
+// construct time at specified schedule HH:mm and GMT offset +/-HH:mm
+func scheduledTimeOfDay(schedule, gmtOffset string, delayOfDay int) time.Time {
+	// construct time at specified event HH:mm and GMT offset
+	c := time.Now()
+	d := c.Format("2006-01-02")
+	t, _ := time.Parse(time.RFC3339, fmt.Sprintf("%sT%s:00%s", d, schedule, gmtOffset))
+	if delayOfDay > 0 {
+		t = t.Add(time.Hour * time.Duration(delayOfDay*24))
+	}
+	return t
+}
+
+// TemperatureUpdate contains data sent to blockchain to update package temperature
+type TemperatureUpdate struct {
+	UID         string  `json:"uid"`
+	ContainerID string  `json:"containerID"`
+	PeriodStart string  `json:"periodStart"`
+	EventTime   string  `json:"eventTime"`
+	MinValue    float64 `json:"minValue"`
+	MaxValue    float64 `json:"maxValue"`
+	InViolation bool    `json:"inViolation"`
+}
+
+// send temperature update event to blockchain
+func sendTemperatureUpdate(uid, consUID string, measurement *Measurement) error {
+	utc := time.FixedZone("UTC", 0)
+	msg := &TemperatureUpdate{
+		UID:         uid,
+		ContainerID: consUID,
+		PeriodStart: measurement.PeriodStart.In(utc).Format(time.RFC3339),
+		EventTime:   measurement.PeriodEnd.In(utc).Format(time.RFC3339),
+		MinValue:    measurement.MinValue,
+		MaxValue:    measurement.MaxValue,
+		InViolation: measurement.InViolation,
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	resp, status, err := postToBlockchain(FabricConfig.BlockchainUser, FabricConfig.UpdateTemperature, data, 0)
+	fmt.Println("blockchain update temperature", status, string(resp))
+	return err
+}
+
+// PackageTransaction contains data sent to blockchain for key package transactions
+// where PackageDetail is json serialized from PackageRequest
+type PackageTransaction struct {
+	UID           string  `json:"uid"`
+	EventTime     string  `json:"eventTime"`
+	Latitude      float64 `json:"latitude"`
+	Longitude     float64 `json:"longitude"`
+	Carrier       string  `json:"carrier,omitempty"`
+	ToCarrier     string  `json:"toCarrier,omitempty"`
+	PackageDetail string  `json:"packageDetail,omitempty"`
+}
+
+// send pickup event to blockchain
+func sendPackagePickup(carrier, uid string, pickupTime time.Time, request *PackageRequest) error {
+	detail, err := json.Marshal(request)
+	if err != nil {
+		return nil
+	}
+	utc := time.FixedZone("UTC", 0)
+	trans := &PackageTransaction{
+		UID:           uid,
+		EventTime:     pickupTime.In(utc).Format(time.RFC3339),
+		Latitude:      request.From.Latitude,
+		Longitude:     request.From.Longitude,
+		PackageDetail: string(detail),
+	}
+	data, err := json.Marshal(trans)
+	if err != nil {
+		return err
+	}
+	user := Carriers[carrier].BlockchainUser
+	resp, status, err := postToBlockchain(user, FabricConfig.Pickup, data, 0)
+	fmt.Println("pickup package", status, string(resp))
+	return err
+}
+
+// send delivery event to blockchain
+func sendPackageDelivery(carrier, uid string, deliveryTime time.Time, lat, lon float64) error {
+
+	utc := time.FixedZone("UTC", 0)
+	trans := &PackageTransaction{
+		UID:       uid,
+		EventTime: deliveryTime.In(utc).Format(time.RFC3339),
+		Latitude:  lat,
+		Longitude: lon,
+	}
+	data, err := json.Marshal(trans)
+	if err != nil {
+		return err
+	}
+	user := Carriers[carrier].BlockchainUser
+	resp, status, err := postToBlockchain(user, FabricConfig.Delivery, data, 0)
+	fmt.Println("deliver package", status, string(resp))
+	return err
+}
+
+// send transfer event to blockchain
+func sendPackageTransfer(carrier, toCarrier, uid string, transferTime time.Time, lat, lon float64) error {
+
+	utc := time.FixedZone("UTC", 0)
+	trans := &PackageTransaction{
+		UID:       uid,
+		EventTime: transferTime.In(utc).Format(time.RFC3339),
+		ToCarrier: toCarrier,
+		Latitude:  lat,
+		Longitude: lon,
+	}
+	data, err := json.Marshal(trans)
+	if err != nil {
+		return err
+	}
+	user := Carriers[carrier].BlockchainUser
+	resp, status, err := postToBlockchain(user, FabricConfig.Transfer, data, 0)
+	fmt.Println("transfer package", status, string(resp))
+	return err
+}
+
+// send transfer ack event to blockchain
+func sendPackageTransferAck(carrier, toCarrier, uid string, ackTime time.Time, lat, lon float64) error {
+
+	utc := time.FixedZone("UTC", 0)
+	trans := &PackageTransaction{
+		UID:       uid,
+		EventTime: ackTime.In(utc).Format(time.RFC3339),
+		Carrier:   carrier,
+		Latitude:  lat,
+		Longitude: lon,
+	}
+	data, err := json.Marshal(trans)
+	if err != nil {
+		return err
+	}
+	user := Carriers[toCarrier].BlockchainUser
+	resp, status, err := postToBlockchain(user, FabricConfig.TransferAck, data, 0)
+	fmt.Println("transfer package ack", status, string(resp))
+	return err
+}
+
+// send POST request to blockchain service; service URL and types are defined in monitor config
+func postToBlockchain(user, service string, content []byte, timeout int) ([]byte, string, error) {
+	if !FabricConfig.Enabled {
+		// do not send blockchain request if monitoring is disabled
+		return nil, "Monitoring disabled", nil
+	}
+
+	if timeout <= 0 {
+		// default time out to 5 second
+		timeout = 5
+	}
+	client := http.Client{
+		Timeout: time.Duration(timeout * int(time.Second)),
+	}
+	url := fmt.Sprintf("%s/%s", FabricConfig.BlockchainService, service)
+	request, err := http.NewRequest("POST", url, bytes.NewBuffer(content))
+	if err != nil {
+		return nil, "Bad request", err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.SetBasicAuth(user, "")
+
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, response.Status, err
+	}
+	defer response.Body.Close()
+
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, response.Status, err
+	}
+	return data, response.Status, nil
 }

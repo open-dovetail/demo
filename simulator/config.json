@@ -2,6 +2,7 @@
     "carriers": {
         "SLS": {
             "description": "South Logistics Services",
+            "blockchainUser": "slsadm@org2",
             "offices": {
                 "LAX": {
                     "description": "Los Angeles, CA",
@@ -32,6 +33,7 @@
         },
         "NLS": {
             "description": "North Logistics Services",
+            "blockchainUser": "nlsadm@org1",
             "offices": {
                 "SEA": {
                     "description": "Seattle, WA",
@@ -86,5 +88,15 @@
         "url": "tcp://127.0.0.1:8222/{dbName=shipdb}",
         "user": "scott",
         "passwd": "scott"
+    },
+    "monitoring": {
+        "enabled": false,
+        "blockchainUser": "iot@org1",
+        "blockchainService": "http://localhost:7979",
+        "pickup": "shipping/pickuppackage",
+        "transfer": "shipping/transferpackage",
+        "transferAck": "shipping/transferpackageack",
+        "deliver": "shipping/deliverpackage",
+        "updateTemperature": "shipping/updatetemperature"
     }
 }

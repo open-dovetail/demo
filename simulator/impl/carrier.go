@@ -27,11 +27,15 @@ var Thresholds map[string]*Threshold
 // GraphDBConfig specifies connection of graph DB for package tracking
 var GraphDBConfig *DBConfig
 
+// FabricConfig specifies configuration of Hyperledger Fabric service requests
+var FabricConfig *MonitorConfig
+
 // Carrier defines a carrier and its office locations
 type Carrier struct {
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
-	Offices     map[string]*Office `json:"offices"`
+	Name           string             `json:"name"`
+	Description    string             `json:"description"`
+	BlockchainUser string             `json:"blockchainUser"`
+	Offices        map[string]*Office `json:"offices"`
 }
 
 // Office defines an office location of a carrier
@@ -82,11 +86,24 @@ type DBConfig struct {
 	Passwd string `json:"passwd"`
 }
 
+// MonitorConfig contians configuration of blockchain service user and request types
+type MonitorConfig struct {
+	Enabled           bool   `json:"enabled"`
+	BlockchainUser    string `json:"blockchainUser"`
+	BlockchainService string `json:"blockchainService"`
+	Pickup            string `json:"pickup"`
+	Transfer          string `json:"transfer"`
+	TransferAck       string `json:"transferAck"`
+	Delivery          string `json:"deliver"`
+	UpdateTemperature string `json:"updateTemperature"`
+}
+
 // DemoConfig defines configuration data for the demo
 type DemoConfig struct {
 	Carriers map[string]*Carrier   `json:"carriers"`
 	Products map[string]*Threshold `json:"products"`
 	GraphDB  *DBConfig             `json:"graphdb"`
+	Monitor  *MonitorConfig        `json:"monitoring"`
 }
 
 // Initialize carrier's office, routes and containers
@@ -117,6 +134,9 @@ func readConfig(configFile string) error {
 
 	// set graphdb config
 	GraphDBConfig = demoConfig.GraphDB
+
+	// set Hyperledger Fabric service config
+	FabricConfig = demoConfig.Monitor
 
 	// initialize thresholds
 	Thresholds = demoConfig.Products
