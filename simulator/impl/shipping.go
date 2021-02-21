@@ -594,6 +594,7 @@ func sendPackageTransferAck(carrier, toCarrier, uid string, ackTime time.Time, l
 func postToBlockchain(user, service string, content []byte, timeout int) ([]byte, string, error) {
 	if !FabricConfig.Enabled {
 		// do not send blockchain request if monitoring is disabled
+		fmt.Println("Blockchain request", user, service, string(content))
 		return nil, "Monitoring disabled", nil
 	}
 

@@ -825,11 +825,10 @@ func getAttributeAsDouble(entity tgdb.TGEntity, name string) float64 {
 		return v
 	case float32:
 		return float64(v)
-	case int64:
-		return float64(v)
-	case int32:
+	case int:
 		return float64(v)
 	default:
+		fmt.Printf("getAttributeAsDouble ignore %v of type %T\n", v, v)
 		return float64(0)
 	}
 }
@@ -926,6 +925,9 @@ func queryPackageDetail(graph *GraphManager, packageID string) (*PackageRequest,
 	if addr, err := queryAddress(graph, packageID, "recipient"); err == nil {
 		result.To = addr
 	}
+	if cont, err := queryContent(graph, packageID); err == nil && cont != nil {
+		result.Content = cont
+	}
 	return result, nil
 }
 
@@ -952,6 +954,27 @@ func queryAddress(graph *GraphManager, packageID, addressType string) (*Address,
 		Country:       getAttributeAsString(node, "country"),
 		Longitude:     getAttributeAsDouble(node, "longitude"),
 		Latitude:      getAttributeAsDouble(node, "latitude"),
+	}, nil
+}
+
+// query content of a specified package
+func queryContent(graph *GraphManager, packageID string) (*Content, error) {
+	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').outE('contains').inV();", packageID)
+	nodes, err := graph.Query(query)
+	if err != nil || len(nodes) < 1 {
+		return nil, err
+	}
+	node, ok := nodes[0].(tgdb.TGNode)
+	if !ok {
+		return nil, fmt.Errorf("query result %T is not a tgdb.TGNode", nodes[0])
+	}
+	return &Content{
+		Product:        getAttributeAsString(node, "product"),
+		Description:    getAttributeAsString(node, "description"),
+		Producer:       getAttributeAsString(node, "producer"),
+		ItemCount:      int(getAttributeAsDouble(node, "itemCount")),
+		StartLotNumber: getAttributeAsString(node, "startLotNumber"),
+		EndLotNumber:   getAttributeAsString(node, "endLotNumber"),
 	}, nil
 }
 
