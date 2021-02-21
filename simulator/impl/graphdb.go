@@ -1454,3 +1454,85 @@ func containerIsMonitored(consUID string, monitorEnd time.Time) bool {
 	}
 	return false
 }
+
+// For a specified package UID, return map of containerUID -> violationMeasurement,
+// assuming that at most one violation period for each embedding container
+func queryThresholdViolation(graph *GraphManager, uid string) (map[string]*Measurement, error) {
+	// query time periods when package is on route
+	periods, err := queryOnRoutePeriods(graph, uid)
+	if err != nil {
+		return nil, err
+	}
+	// query monitored container
+	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').inE('contains').outV();", uid)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return nil, err
+	}
+
+	result := make(map[string]*Measurement)
+	for i, node := range data {
+		cons := node.(tgdb.TGNode)
+		consUID := getAttributeAsString(cons, "uid")
+		m, err := queryContainerViolation(graph, consUID, periods[i].PeriodStart, periods[i].PeriodEnd)
+		if err == nil && m != nil {
+			result[consUID] = m
+		}
+	}
+	return result, nil
+}
+
+type timePeriod struct {
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+}
+
+func queryOnRoutePeriods(graph *GraphManager, uid string) ([]*timePeriod, error) {
+	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').inE('contains');", uid)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return nil, err
+	}
+	var result []*timePeriod
+	for _, edge := range data {
+		contains := edge.(tgdb.TGEdge)
+		period := &timePeriod{
+			PeriodStart: contains.GetAttribute("eventTimestamp").GetValue().(time.Time),
+			PeriodEnd:   contains.GetAttribute("outTimestamp").GetValue().(time.Time),
+		}
+		result = append(result, period)
+	}
+	return result, nil
+}
+
+// return threshold violation period of a container within the specified time range
+func queryContainerViolation(graph *GraphManager, consUID string, periodStart, periodEnd time.Time) (*Measurement, error) {
+	query := fmt.Sprintf("gremlin://g.V().has('Container','uid','%s').outE('measures').has('violated',1);", consUID)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return nil, err
+	}
+
+	for _, edge := range data {
+		measures := edge.(tgdb.TGEdge)
+		violationStart := measures.GetAttribute("startTimestamp").GetValue().(time.Time)
+		violationEnd := measures.GetAttribute("eventTimestamp").GetValue().(time.Time)
+		if violationStart.Before(periodStart) {
+			violationStart = periodStart
+		}
+		if periodEnd.Before(violationEnd) {
+			violationEnd = periodEnd
+		}
+		if violationStart.Before(violationEnd) {
+			// found a violation measurement
+			return &Measurement{
+				PeriodStart: violationStart,
+				PeriodEnd:   violationEnd,
+				MinValue:    getAttributeAsDouble(measures, "minValue"),
+				MaxValue:    getAttributeAsDouble(measures, "maxValue"),
+				InViolation: true,
+			}, nil
+		}
+	}
+	return nil, nil
+}

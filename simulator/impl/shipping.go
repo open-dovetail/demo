@@ -352,8 +352,18 @@ func PickupPackage(packageID string) error {
 			return err
 		}
 	}
-	_, err = handleDelivery(graph, pkg, destOffice, hubTime)
+	if _, err = handleDelivery(graph, pkg, destOffice, hubTime); err != nil {
+		return err
+	}
 
+	// notify blockchain if there are threshold violations
+	if mms, err := queryThresholdViolation(graph, packageID); err == nil && len(mms) > 0 {
+		for c, m := range mms {
+			if err := sendTemperatureUpdate(packageID, c, m); err != nil {
+				fmt.Println("failed to send temperature violation to blockchain", err)
+			}
+		}
+	}
 	return err
 }
 

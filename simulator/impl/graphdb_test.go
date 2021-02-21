@@ -160,3 +160,24 @@ func TestCreateMonitorMeasurements(t *testing.T) {
 	assert.NoError(t, err, "query container uid should not throw error")
 	assert.Equal(t, size, len(data), "resend same monitoring request should not create more measures")
 }
+
+func TestQueryThresholdViolation(t *testing.T) {
+	fmt.Println("TestQueryThresholdViolation")
+
+	graph, err := GetTGConnection()
+	assert.NoError(t, err, "connect to TGDB should not throw error")
+
+	query := "gremlin://g.V().has('Package','carrier','NLS').has('product','PfizerVaccine').values('uid');"
+	data, err := graph.Query(query)
+	assert.NoError(t, err, "query package uid should not throw error")
+	assert.Greater(t, len(data), 0, "at least 1 package should exist")
+	uid := data[0].(string)
+
+	mms, err := queryThresholdViolation(graph, uid)
+	assert.NoError(t, err, "query threshold violation should not throw error")
+	threshold := Thresholds["PfizerVaccine"]
+	for c, m := range mms {
+		fmt.Println("violation", c, m)
+		assert.Greater(t, m.MinValue, threshold.MaxValue, "violation measure should be greater than threshold upper bound")
+	}
+}
