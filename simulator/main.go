@@ -102,7 +102,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method is not supported", http.StatusBadRequest)
 	}
-
 }
 
 func handleShippingRequest(r *http.Request) ([]byte, int, error) {

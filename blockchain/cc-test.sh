@@ -62,3 +62,4 @@ peer chaincode invoke $ORDERER_ARGS -C mychannel -n $CCNAME $ORG1_ARGS $ORG2_ARG
 sleep 5
 echo "get package environment ..."
 peer chaincode query -C mychannel -n $CCNAME -c '{"function":"packageEnvironment","Args":["677e9dcf985c890d"]}'
+peer chaincode query -C mychannel -n $CCNAME -c '{"function":"getTemperatureByTimestamp","Args":["677e9dcf985c890d","2021-02-12 21:57:25"]}'

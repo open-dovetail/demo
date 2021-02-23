@@ -549,7 +549,7 @@
                 },
                 "config": {
                   "compositeKeys": {
-                    "transaction": [
+                    "measurement": [
                       "docType",
                       "uid",
                       "measurementType",
@@ -589,6 +589,66 @@
                     "status": "=$activity[put_1].code",
                     "message": "=$activity[put_1].message",
                     "returns": "=$activity[put_1].result[0]"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "getTemperatureByTimestamp",
+          "parameters": [{
+              "name": "uid",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "periodStart",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/packageEnvironment"
+          },
+          "rules": [{
+            "description": "retrieve a temperature measure of specified package uid and period start time",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageEnvironment"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "measurement": [
+                      "docType",
+                      "uid",
+                      "measurementType",
+                      "periodStart"
+                    ]
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "docType": "packageEnvironment",
+                      "uid": "=$flow.parameters.uid",
+                      "measurementType": "temperature",
+                      "periodStart": "=$flow.parameters.periodStart"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result[0].value"
                   }
                 }
               }
@@ -673,7 +733,7 @@
                 },
                 "config": {
                   "compositeKeys": {
-                    "transaction": [
+                    "measurement": [
                       "docType",
                       "uid",
                       "measurementType",
