@@ -64,12 +64,14 @@ clean-client:
 	-rm -Rf $(SRC_PATH)/$(APP_NAME)
 	-rm $(SRC_PATH)/$(APP_NAME)_app
 
-.PHONY: create-client
-create-client: $(CONTRACT) clean-client
-	flogo contract2rest $(FE) -c $(CONTRACT) -o $(APP_FILE)
-
 .PHONY: build-client
-build-client: $(APP_FILE)
+build-client: $(CONTRACT) clean-client
+	flogo contract2rest $(FE) -c $(CONTRACT) -o $(APP_FILE)
+	$(APP_BUILD)/build.sh $(APP_FILE) $(NETWORK) $(MATCHER)
+
+.PHONY: build-rest
+build-rest: shipping_rest_fe.json
+	cp shipping_rest_fe.json $(APP_FILE)
 	$(APP_BUILD)/build.sh $(APP_FILE) $(NETWORK) $(MATCHER)
 
 .PHONY: run
