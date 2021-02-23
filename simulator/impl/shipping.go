@@ -31,8 +31,8 @@ type Address struct {
 	StateProvince string  `json:"state-province"`
 	PostalCd      string  `json:"postal-code"`
 	Country       string  `json:"country"`
-	Longitude     float64 `json:"-"`
-	Latitude      float64 `json:"-"`
+	Longitude     float64 `json:"longitude"`
+	Latitude      float64 `json:"latitude"`
 }
 
 // Package describes attributes of a package; json attributes will be stored in QR code
@@ -156,22 +156,26 @@ func initializePackage(req *PackageRequest) (*Package, error) {
 	if origin == nil {
 		return nil, fmt.Errorf("sender state '%s' is not serviced by any carrier", pkg.From.StateProvince)
 	}
-	lat, lon := randomGPSLocation(origin)
-	pkg.From.UID = createFnvHash(pkg.From)
-	pkg.From.Latitude = lat
-	pkg.From.Longitude = lon
-	pickupDelay := localDelayHours(lat, lon, origin)
+	if pkg.From.Latitude*pkg.From.Longitude <= 0 {
+		lat, lon := randomGPSLocation(origin)
+		pkg.From.Latitude = lat
+		pkg.From.Longitude = lon
+		pkg.From.UID = createFnvHash(pkg.From)
+	}
+	pickupDelay := localDelayHours(pkg.From.Latitude, pkg.From.Longitude, origin)
 
 	// select destination office
 	dest := findOfficeByState(pkg.To.StateProvince)
 	if dest == nil {
 		return nil, fmt.Errorf("recipient state '%s' is not serviced by any carrier", pkg.To.StateProvince)
 	}
-	lat, lon = randomGPSLocation(dest)
+	if pkg.To.Latitude*pkg.To.Longitude <= 0 {
+		lat, lon := randomGPSLocation(dest)
+		pkg.To.Latitude = lat
+		pkg.To.Longitude = lon
+	}
 	pkg.To.UID = createFnvHash(pkg.To)
-	pkg.To.Latitude = lat
-	pkg.To.Longitude = lon
-	deliveryDelay := localDelayHours(lat, lon, dest)
+	deliveryDelay := localDelayHours(pkg.To.Latitude, pkg.To.Longitude, dest)
 
 	// set package attributes
 	pkg.Product = req.Content.Product
@@ -365,6 +369,21 @@ func PickupPackage(packageID string) error {
 		}
 	}
 	return err
+}
+
+// QueryPackageTimeline return transit timeline of a package of specified uid
+func QueryPackageTimeline(packageID string) ([]byte, error) {
+
+	graph, err := GetTGConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	transit, err := queryPackageTransit(graph, packageID)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(transit)
 }
 
 // Measurement is randomly generated measurement against a threshold

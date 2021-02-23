@@ -30,7 +30,8 @@ func init() {
 
 // send sample request
 // curl -X PUT -H "Content-Type: application/json" -d @package.json http://localhost:8081/packages/create
-// curl -X PUT -H "Content-Type: application/json" http://localhost:8081/packages/pickup?uid=84ce7d75aaacf6ce
+// curl -X PUT -H "Content-Type: application/json" http://localhost:8081/packages/pickup?uid=4730f2294a6156c8
+// curl -X GET -H "Content-Type: application/json" http://localhost:8081/packages/timeline?uid=4730f2294a6156c8
 
 func main() {
 	flag.Parse()
@@ -134,5 +135,17 @@ func handleShippingRequest(r *http.Request) ([]byte, int, error) {
 
 func handleQueryRequest(r *http.Request) ([]byte, int, error) {
 	fmt.Println("handling query")
+	if r.URL.Path == "/packages/timeline" {
+		uid := r.URL.Query().Get("uid")
+		if len(uid) == 0 {
+			return nil, http.StatusBadRequest, errors.New("package uid is not specified as query parameter")
+		}
+		glog.Info("timeline of package", uid)
+		data, err := impl.QueryPackageTimeline(uid)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
+		return data, http.StatusOK, nil
+	}
 	return []byte("to be implemented"), http.StatusOK, nil
 }

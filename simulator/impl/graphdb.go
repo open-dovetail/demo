@@ -5,6 +5,7 @@ SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 package impl
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -799,6 +800,22 @@ func getAttributeAsString(entity tgdb.TGEntity, name string) string {
 	return fmt.Sprintf("%v", result)
 }
 
+func getAttributeAsUTCTime(entity tgdb.TGEntity, name string) string {
+	attr := entity.GetAttribute(name)
+	var result interface{}
+	if attr != nil {
+		result = attr.GetValue()
+	}
+	if result == nil {
+		return ""
+	}
+	if v, ok := result.(time.Time); ok {
+		utc := time.FixedZone("UTC", 0)
+		return v.In(utc).Format(time.RFC3339)
+	}
+	return fmt.Sprintf("%v", result)
+}
+
 func getAttributeAsBool(entity tgdb.TGEntity, name string) bool {
 	attr := entity.GetAttribute(name)
 	var result interface{}
@@ -1038,11 +1055,18 @@ func localPickup(graph *GraphManager, pickupDelay float64, origin, pkg tgdb.TGNo
 	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('departs').order().by('eventTimestamp', desc).values('eventTimestamp').limit(1);", routeNbr)
 	data, err = graph.Query(query)
 	if err != nil || len(data) == 0 {
-		return time.Time{}, time.Time{}, fmt.Errorf("pickup route arrival time not found for %s", routeNbr)
+		return time.Time{}, time.Time{}, fmt.Errorf("pickup route depart time not found for %s", routeNbr)
 	}
 	departTime := data[0].(time.Time)
 
-	var arrivalTime time.Time
+	// get last arrival time of the local route
+	query = fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('arrives').order().by('eventTimestamp', desc).values('eventTimestamp').limit(1);", routeNbr)
+	data, err = graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return time.Time{}, time.Time{}, fmt.Errorf("pickup route arrival time not found for %s", routeNbr)
+	}
+	arrivalTime := data[0].(time.Time)
+
 	if departTime.Before(time.Now()) {
 		// last route time is old, so create new pickup route depart and arrival for a new day
 		departTime, err = createEdgeDeparts(graph, route, origin, time.Now())
@@ -1558,4 +1582,314 @@ func queryContainerViolation(graph *GraphManager, consUID string, periodStart, p
 		}
 	}
 	return nil, nil
+}
+
+// return measurements of a container within the specified time range
+func queryContainerMeasurements(graph *GraphManager, consUID string, periodStart, periodEnd time.Time) (bool, []*monitorData, error) {
+	query := fmt.Sprintf("gremlin://g.V().has('Container','uid','%s').outE('measures').order().by('eventTimestamp');", consUID)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return false, nil, err
+	}
+
+	var result []*monitorData
+	violated := false
+	for _, edge := range data {
+		measures := edge.(tgdb.TGEdge)
+		measureStart := measures.GetAttribute("startTimestamp").GetValue().(time.Time)
+		measureEnd := measures.GetAttribute("eventTimestamp").GetValue().(time.Time)
+		if measureStart.After(periodEnd) || measureEnd.Before(periodStart) {
+			continue
+		}
+		if measureStart.Before(periodStart) {
+			measureStart = periodStart
+		}
+		if periodEnd.Before(measureEnd) {
+			measureEnd = periodEnd
+		}
+		if measureStart.Before(measureEnd) {
+			// collect the measurement
+			utc := time.FixedZone("UTC", 0)
+			m := &monitorData{
+				PeriodStart: measureStart.In(utc).Format(time.RFC3339),
+				PeriodEnd:   measureEnd.In(utc).Format(time.RFC3339),
+				MinValue:    getAttributeAsDouble(measures, "minValue"),
+				MaxValue:    getAttributeAsDouble(measures, "maxValue"),
+				InViolation: getAttributeAsBool(measures, "violated"),
+			}
+			if m.InViolation {
+				violated = true
+			}
+			result = append(result, m)
+		}
+	}
+	return violated, result, nil
+}
+
+type packageTransit struct {
+	UID      string          `json:"uid"`
+	Timeline []*transitEvent `json:"timeline"`
+	Routes   []*routeDetail  `json:"routes"`
+}
+
+type transitEvent struct {
+	EventTimestamp string  `json:"eventTime"`
+	EventType      string  `json:"eventType"`
+	Location       string  `json:"location"`
+	Latitude       float64 `json:"latitude"`
+	Longitude      float64 `json:"longitude"`
+	RouteRef       string  `json:"route,omitempty"`
+}
+
+type routeDetail struct {
+	RouteNbr      string         `json:"routeNbr"`
+	RouteType     string         `json:"-"`
+	DepartureTime string         `json:"departureTime"`
+	From          string         `json:"from"`
+	FromLatitude  float64        `json:"-"`
+	FromLongitude float64        `json:"-"`
+	ArrivalTime   string         `json:"arrivalTime"`
+	To            string         `json:"to"`
+	ToLatitude    float64        `json:"-"`
+	ToLongitude   float64        `json:"-"`
+	ContainerPath string         `json:"containers"`
+	Violated      bool           `json:"violated"`
+	Measurements  []*monitorData `json:"measurements"`
+}
+
+type monitorData struct {
+	PeriodStart string  `json:"periodStart"`
+	PeriodEnd   string  `json:"periodEnd"`
+	MinValue    float64 `json:"minValue"`
+	MaxValue    float64 `json:"maxValue"`
+	InViolation bool    `json:"violated"`
+}
+
+func queryPackageTransit(graph *GraphManager, uid string) (*packageTransit, error) {
+	relatedNodes, err := queryRelatedNodes(graph, uid)
+	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').inE().order().by('eventTimestamp');", uid)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return nil, err
+	}
+
+	var timeline []*transitEvent
+	var routes []*routeDetail
+	for _, edge := range data {
+		event := edge.(tgdb.TGEdge)
+		switch event.GetEntityType().GetName() {
+		case "pickup":
+			// do nothing, will be added by contains
+		case "contains":
+			eventTime := getAttributeAsUTCTime(event, "eventTimestamp")
+			key := fmt.Sprintf("contains-%s", eventTime)
+			cons := relatedNodes[key]
+			periodStart := event.GetAttribute("eventTimestamp").GetValue().(time.Time)
+			periodEnd := event.GetAttribute("outTimestamp").GetValue().(time.Time)
+			if rd, err := queryRouteDetail(graph, cons, periodStart, periodEnd); err == nil {
+				routes = append(routes, rd)
+				if rd.RouteType == "G" && eventTime > rd.DepartureTime {
+					// add pickup
+					pickup := &transitEvent{
+						EventTimestamp: eventTime,
+						EventType:      "pickup",
+						RouteRef:       rd.RouteNbr,
+					}
+					if addr, err := queryAddress(graph, uid, "sender"); err == nil {
+						pickup.Latitude = addr.Latitude
+						pickup.Longitude = addr.Longitude
+						pickup.Location = fmt.Sprintf("%s, %s, %s", addr.Street, addr.City, addr.StateProvince)
+					}
+					timeline = append(timeline, pickup)
+				} else {
+					timeline = append(timeline, &transitEvent{
+						EventTimestamp: eventTime,
+						EventType:      "depart",
+						Location:       rd.From,
+						Latitude:       rd.FromLatitude,
+						Longitude:      rd.FromLongitude,
+						RouteRef:       rd.RouteNbr,
+					})
+				}
+				outTime := getAttributeAsUTCTime(event, "outTimestamp")
+				if rd.RouteType == "G" && outTime < rd.ArrivalTime {
+					// add delivery
+					delivery := &transitEvent{
+						EventTimestamp: outTime,
+						EventType:      "deliver",
+						RouteRef:       rd.RouteNbr,
+					}
+					if addr, err := queryAddress(graph, uid, "recipient"); err == nil {
+						delivery.Latitude = addr.Latitude
+						delivery.Longitude = addr.Longitude
+						delivery.Location = fmt.Sprintf("%s, %s, %s", addr.Street, addr.City, addr.StateProvince)
+					}
+					timeline = append(timeline, delivery)
+				} else {
+					timeline = append(timeline, &transitEvent{
+						EventTimestamp: outTime,
+						EventType:      "arrive",
+						Location:       rd.To,
+						Latitude:       rd.ToLatitude,
+						Longitude:      rd.ToLongitude,
+						RouteRef:       rd.RouteNbr,
+					})
+				}
+			}
+		case "transfers":
+			eventTime := getAttributeAsUTCTime(event, "eventTimestamp")
+			key := fmt.Sprintf("transfers-%s", eventTime)
+			office := relatedNodes[key]
+			eventType := "transfer"
+			if getAttributeAsString(event, "direction") == "to" {
+				eventType = "transferAck"
+			}
+			loc := fmt.Sprintf("%s: %s, %s", getAttributeAsString(office, "carrier"), getAttributeAsString(office, "iata"), getAttributeAsString(office, "description"))
+			timeline = append(timeline, &transitEvent{
+				EventTimestamp: eventTime,
+				EventType:      eventType,
+				Location:       loc,
+				Latitude:       getAttributeAsDouble(event, "latitude"),
+				Longitude:      getAttributeAsDouble(event, "longitude"),
+			})
+		case "delivery":
+			// do nothing, added by contains
+		default:
+			fmt.Println("ignore package relationship", event.GetEntityType().GetName())
+		}
+	}
+	return &packageTransit{
+		UID:      uid,
+		Timeline: timeline,
+		Routes:   routes,
+	}, nil
+}
+
+func queryRelatedNodes(graph *GraphManager, uid string) (map[string]tgdb.TGNode, error) {
+	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').inE().outV().simplePath().path();", uid)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return nil, err
+	}
+	result := make(map[string]tgdb.TGNode)
+	for _, path := range data {
+		entities, ok := path.([]interface{})
+		if !ok || len(entities) < 3 {
+			return nil, errors.New("query did not return path with 3 entities")
+		}
+		edge := entities[1].(tgdb.TGEdge)
+		node := entities[2].(tgdb.TGNode)
+		key := fmt.Sprintf("%s-%s", edge.GetEntityType().GetName(), getAttributeAsUTCTime(edge, "eventTimestamp"))
+		result[key] = node
+	}
+	return result, nil
+}
+
+func queryRouteDetail(graph *GraphManager, cons tgdb.TGNode, periodStart, periodEnd time.Time) (*routeDetail, error) {
+	result := &routeDetail{}
+	// get measurements of the base container if type is 'F'
+	if getAttributeAsString(cons, "type") == "F" {
+		if violated, measurements, err := queryContainerMeasurements(graph, getAttributeAsString(cons, "uid"), periodStart, periodEnd); err == nil {
+			result.Violated = violated
+			result.Measurements = measurements
+		}
+	}
+
+	// navigate to root vessel container
+	path := getAttributeAsString(cons, "uid")
+	var err error
+	for getAttributeAsString(cons, "type") != "V" {
+		cons, path, err = queryParentContainer(graph, cons, path)
+		if err != nil || cons == nil {
+			fmt.Println("failed to query parent", cons, err)
+			return nil, err
+		}
+	}
+	result.ContainerPath = path
+
+	// get assigned route
+	query := fmt.Sprintf("gremlin://g.V().has('Container','uid','%s').outE('assigned').inV();", getAttributeAsString(cons, "uid"))
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		fmt.Println("failed to query route", query, err)
+		return nil, err
+	}
+	route := data[0].(tgdb.TGNode)
+	result.RouteType = getAttributeAsString(route, "type")
+
+	// get departure and arrival event details
+	arriveEvt, err := queryRouteEvent(graph, route, "arrives", periodEnd)
+	if err != nil {
+		fmt.Println("failed to query route arrival", route, err)
+		return nil, err
+	}
+	result.ArrivalTime = arriveEvt.EventTime
+	result.To = arriveEvt.Location
+	result.ToLatitude = arriveEvt.Latitude
+	result.ToLongitude = arriveEvt.Longitude
+
+	departEvt, err := queryRouteEvent(graph, route, "departs", periodStart)
+	if err != nil {
+		fmt.Println("failed to query route departure", route, err)
+		return nil, err
+	}
+	result.RouteNbr = departEvt.RouteNbr
+	result.DepartureTime = departEvt.EventTime
+	result.From = departEvt.Location
+	result.FromLatitude = departEvt.Latitude
+	result.FromLongitude = departEvt.Longitude
+
+	return result, nil
+}
+
+type routeEvent struct {
+	RouteNbr  string
+	EventTime string
+	Location  string
+	Latitude  float64
+	Longitude float64
+}
+
+// route event info for eventType 'departs' or 'arrives'
+func queryRouteEvent(graph *GraphManager, route tgdb.TGNode, eventType string, refTime time.Time) (*routeEvent, error) {
+	query := fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('%s').inV().simplePath().path();", getAttributeAsString(route, "routeNbr"), eventType)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		return nil, err
+	}
+
+	refYearDay := refTime.YearDay()
+	for _, path := range data {
+		entities, ok := path.([]interface{})
+		if !ok || len(entities) < 3 {
+			return nil, errors.New("query did not return path with 3 entities")
+		}
+		edge := entities[1].(tgdb.TGEdge)
+		node := entities[2].(tgdb.TGNode)
+		eventTime := edge.GetAttribute("eventTimestamp").GetValue().(time.Time)
+		if eventTime.YearDay() == refYearDay {
+			loc := fmt.Sprintf("%s: %s, %s", getAttributeAsString(node, "carrier"), getAttributeAsString(node, "iata"), getAttributeAsString(node, "description"))
+			return &routeEvent{
+				RouteNbr:  getAttributeAsString(route, "routeNbr"),
+				EventTime: getAttributeAsUTCTime(edge, "eventTimestamp"),
+				Location:  loc,
+				Latitude:  getAttributeAsDouble(node, "latitude"),
+				Longitude: getAttributeAsDouble(node, "longitude"),
+			}, nil
+		}
+	}
+	return nil, fmt.Errorf("faild to retrieve route event %s", eventType)
+}
+
+func queryParentContainer(graph *GraphManager, cons tgdb.TGNode, path string) (tgdb.TGNode, string, error) {
+	uid := getAttributeAsString(cons, "uid")
+	query := fmt.Sprintf("gremlin://g.V().has('Container','uid','%s').inE('contains').outV();", uid)
+	data, err := graph.Query(query)
+	if err != nil || len(data) == 0 {
+		fmt.Println("queryParentContainer", uid, query, err)
+		return nil, path, err
+	}
+
+	node := data[0].(tgdb.TGNode)
+	return node, fmt.Sprintf("%s.%s", getAttributeAsString(node, "uid"), path), nil
 }
