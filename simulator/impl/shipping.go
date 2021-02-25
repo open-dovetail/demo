@@ -401,7 +401,7 @@ func randomThresholdViolation(periodStart, periodEnd time.Time, minValue, maxVal
 	endSecond := periodEnd.Unix()
 
 	var violation *Measurement
-	violationPeriod := int64(rand.Float64()*float64(endSecond-startSecond)) / 10
+	violationPeriod := int64(rand.Float64() * float64(endSecond-startSecond) / 10.0)
 	if rand.Float64() < violationRate && violationPeriod > 0 {
 		violationStart := startSecond + int64(rand.Float64()*float64(endSecond-startSecond))
 		violationEnd := violationStart + violationPeriod
