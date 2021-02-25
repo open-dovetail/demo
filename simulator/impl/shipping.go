@@ -634,12 +634,18 @@ func postToBlockchain(user, service string, content []byte, timeout int) ([]byte
 
 	response, err := client.Do(request)
 	if err != nil {
+		if response == nil {
+			return nil, "Error response", err
+		}
 		return nil, response.Status, err
 	}
 	defer response.Body.Close()
 
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
+		if response == nil {
+			return nil, "Error response", err
+		}
 		return nil, response.Status, err
 	}
 	return data, response.Status, nil

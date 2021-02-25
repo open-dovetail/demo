@@ -90,9 +90,9 @@
         "passwd": "scott"
     },
     "monitoring": {
-        "enabled": false,
+        "enabled": true,
         "blockchainUser": "iot@org1",
-        "blockchainService": "http://localhost:7979",
+        "blockchainService": "http://127.0.0.1:7979",
         "pickup": "shipping/pickuppackage",
         "transfer": "shipping/transferpackage",
         "transferAck": "shipping/transferpackageack",

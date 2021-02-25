@@ -19,7 +19,7 @@ import (
 var configFile, httpPort string
 
 func init() {
-	flag.StringVar(&httpPort, "port", "8081", "HTTP REST service listen port")
+	flag.StringVar(&httpPort, "port", "7980", "HTTP REST service listen port")
 	flag.StringVar(&configFile, "config", "./config.json", "Server configuration file")
 }
 
@@ -29,9 +29,9 @@ func init() {
 // or log to specified file using option -log_dir="mylogfile"
 
 // send sample request
-// curl -X PUT -H "Content-Type: application/json" -d @package.json http://localhost:8081/packages/create
-// curl -X PUT -H "Content-Type: application/json" http://localhost:8081/packages/pickup?uid=4730f2294a6156c8
-// curl -X GET -H "Content-Type: application/json" http://localhost:8081/packages/timeline?uid=4730f2294a6156c8
+// curl -X PUT -H "Content-Type: application/json" -d @package.json http://localhost:7980/packages/create
+// curl -X PUT -H "Content-Type: application/json" http://localhost:7980/packages/pickup?uid=4730f2294a6156c8
+// curl -X GET -H "Content-Type: application/json" http://localhost:7980/packages/timeline?uid=4730f2294a6156c8
 
 func main() {
 	flag.Parse()

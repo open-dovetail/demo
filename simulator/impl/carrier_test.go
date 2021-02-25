@@ -22,6 +22,7 @@ func setup() error {
 	if err != nil {
 		return nil
 	}
+	FabricConfig.Enabled = false
 	return setupDemoGraph()
 }
 

@@ -18,4 +18,4 @@ if [ ! -d "./data" ]; then
   ${TGDB_HOME}/bin/tgdb -i -f -c ./tgdb.conf
 fi
 
-${TGDB_HOME}/bin/tgdb -s -c ./tgdb.conf
+${TGDB_HOME}/bin/tgdb -s -c ./tgdb.conf &
