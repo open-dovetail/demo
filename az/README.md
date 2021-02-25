@@ -34,7 +34,7 @@ would create an AKS cluster with name prefix of `dtwin`, at the Azure location o
 Wait 2 minutes for the bastion VM is up, it will print a line, such as:
 
 ```bash
-ssh fab@51.143.17.95
+ssh fab@40.65.112.23
 ```
 
 You can use this command to login to the `bastion` VM instance and start the Hyperledger Fabric test-network. Note that the `ssh` keypair for accessing the `bastion` host is in your `$HOME/.ssh` folder, and named as `id_rsa.pub` and `id_rsa`. The script will generate a new keypair if these files do not exist already.
@@ -54,7 +54,7 @@ Note in the script `create-bastion.sh`, we loaded Microsoft docker extension `v1
 Log on to the `bastion` host, e.g., (your real host IP will be different):
 
 ```bash
-ssh fab@51.143.17.95
+ssh fab@40.65.112.23
 ```
 
 Start all required services scripted in [start.sh](./start.sh)
@@ -64,7 +64,7 @@ cd /path/to/demo/az
 ./start.sh
 ```
 
-The blockchain client `shipping_rest_app` service will listen on `http://51.143.17.95:7979`. The `simulator` service will listen on `http://51.143.17.95:7980`. To get access to these services, the demo presenter can provide the presenter's IP address, i.e., the output from `curl ifconfig.me`, and add it to the Azure security rule.
+The blockchain client `shipping_rest_app` service will listen on `http://40.65.112.23:7979`. The `simulator` service will listen on `http://40.65.112.23:7980`. To get access to these services, the demo presenter can provide the presenter's IP address, i.e., the output from `curl ifconfig.me`, and add it to the Azure security rule.
 
 If the bastion VM is at IP address `40.65.112.23`, you can create a package using the sample data [package.json](../simulator/package.json):
 
@@ -73,29 +73,29 @@ cd /path/to/demo/simulator
 curl -X PUT -H "Content-Type: application/json" -d @package.json http://40.65.112.23:7980/packages/create
 ```
 
-If the returned package UID is `a7ed81627600af43`, you can use the following APIs to process the package and fetch the results:
+If the returned package UID is `2f850cc1cd8e670a`, you can use the following APIs to process the package and fetch the results:
 
 ```bash
 # invoke simulator APIs
-curl -X PUT -H "Content-Type: application/json" http://40.65.112.23:7980/packages/pickup?uid=a7ed81627600af43
-curl -X GET -H "Content-Type: application/json" http://40.65.112.23:7980/packages/timeline?uid=a7ed81627600af43
+curl -X PUT -H "Content-Type: application/json" http://40.65.112.23:7980/packages/pickup?uid=2f850cc1cd8e670a
+curl -X GET -H "Content-Type: application/json" http://40.65.112.23:7980/packages/timeline?uid=2f850cc1cd8e670a
 ```
 
 Verify Blockchain transactions using the following APIs
 
 ```bash
 # query package transactions on blockchain
-curl -u nlsadm: -X POST -H 'Content-Type: application/json' -d '{"uid":"a7ed81627600af43"}' http://40.65.112.23:7979/shipping/packagetimeline
+curl -u nlsadm: -X POST -H 'Content-Type: application/json' -d '{"uid":"2f850cc1cd8e670a"}' http://40.65.112.23:7979/shipping/packagetimeline
 
 # query package environment on blockchain
-curl -u iot: -X POST -H 'Content-Type: application/json' -d '{"uid":"a7ed81627600af43"}' http://40.65.112.23:7979/shipping/packageenvironment
+curl -u iot: -X POST -H 'Content-Type: application/json' -d '{"uid":"2f850cc1cd8e670a"}' http://40.65.112.23:7979/shipping/packageenvironment
 
 # query blockchain transaction/temperature records with user signing CA
-curl -u User1: -X POST -H 'Content-Type: application/json' -d '{"uid":"a7ed81627600af43","transactionType":"transfer"}' http://40.65.112.23:7979/shipping/verifytransaction
-curl -u User1: -X POST -H 'Content-Type: application/json' -d '{"uid":"a7ed81627600af43","periodStart":"2021-02-25T14:30:31Z"}' http://40.65.112.23:7979/shipping/verifytemperature
+curl -u User1: -X POST -H 'Content-Type: application/json' -d '{"uid":"2f850cc1cd8e670a","transactionType":"transfer"}' http://40.65.112.23:7979/shipping/verifytransaction
+curl -u User1: -X POST -H 'Content-Type: application/json' -d '{"uid":"2f850cc1cd8e670a","periodStart":"2021-02-25T14:30:31Z"}' http://40.65.112.23:7979/shipping/verifytemperature
 
 # query package content on blockchain
-curl -u nlsadm: -X POST -H 'Content-Type: application/json' -d '{"uid":"a7ed81627600af43"}' http://40.65.112.23:7979/shipping/getpackagebyuid
+curl -u nlsadm: -X POST -H 'Content-Type: application/json' -d '{"uid":"2f850cc1cd8e670a"}' http://40.65.112.23:7979/shipping/getpackagebyuid
 ```
 
 ## Clean up all Azure resources

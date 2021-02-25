@@ -88,14 +88,15 @@ type DBConfig struct {
 
 // MonitorConfig contians configuration of blockchain service user and request types
 type MonitorConfig struct {
-	Enabled           bool   `json:"enabled"`
-	BlockchainUser    string `json:"blockchainUser"`
-	BlockchainService string `json:"blockchainService"`
-	Pickup            string `json:"pickup"`
-	Transfer          string `json:"transfer"`
-	TransferAck       string `json:"transferAck"`
-	Delivery          string `json:"deliver"`
-	UpdateTemperature string `json:"updateTemperature"`
+	Enabled           bool    `json:"enabled"`
+	ViolationRate     float64 `json:"violationRate"`
+	BlockchainUser    string  `json:"blockchainUser"`
+	BlockchainService string  `json:"blockchainService"`
+	Pickup            string  `json:"pickup"`
+	Transfer          string  `json:"transfer"`
+	TransferAck       string  `json:"transferAck"`
+	Delivery          string  `json:"deliver"`
+	UpdateTemperature string  `json:"updateTemperature"`
 }
 
 // DemoConfig defines configuration data for the demo

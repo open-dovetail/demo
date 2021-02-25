@@ -75,7 +75,7 @@ func TestInitializePackage(t *testing.T) {
 func TestRandomThresholdViolation(t *testing.T) {
 	start := time.Now()
 	end := start.Add(time.Hour * time.Duration(2))
-	measures := randomThresholdViolation(start, end, -80, -50, 0.5)
+	measures := randomThresholdViolation(start, end, -80, -50, FabricConfig.ViolationRate)
 	if len(measures) > 1 {
 		// assert violation period
 		violation := measures[1]

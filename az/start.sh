@@ -27,4 +27,4 @@ make run
 # build and run simulator
 cd ${DEMO_HOME}/simulator
 go build
-./simulator &
+nohup ./simulator 2>&1 &

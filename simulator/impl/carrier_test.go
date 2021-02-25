@@ -62,7 +62,8 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "scott", GraphDBConfig.Passwd, "graphdb password should be configured as 'scott'")
 
 	// verify fabric config parameters
-	assert.Equal(t, "http://localhost:7979", FabricConfig.BlockchainService, "blockchain service url should be configured")
+	assert.Equal(t, "http://127.0.0.1:7979", FabricConfig.BlockchainService, "blockchain service url should be configured")
+	assert.Equal(t, float64(0.5), FabricConfig.ViolationRate, "threshold violation rate should be configured")
 	assert.Equal(t, "iot@org1", FabricConfig.BlockchainUser, "Blockchain user for monitoring should be configured")
 	assert.Equal(t, "shipping/pickuppackage", FabricConfig.Pickup, "pickup request should be configured")
 	assert.Equal(t, "shipping/transferpackage", FabricConfig.Transfer, "transfer request should be configured")

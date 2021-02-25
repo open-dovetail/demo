@@ -1469,7 +1469,7 @@ func createMonitorMeasurements(graph *GraphManager, cons tgdb.TGNode, schdDepart
 			// skip if the container measurement already exist in TGDB
 			continue
 		}
-		measures := randomThresholdViolation(monitorStart, monitorEnd, minValue, maxValue, 0.5)
+		measures := randomThresholdViolation(monitorStart, monitorEnd, minValue, maxValue, FabricConfig.ViolationRate)
 		for _, m := range measures {
 			// create edge measures from cons to threshold
 			err := createEdgeMeasures(graph, cons, threshold, m)
@@ -1665,6 +1665,7 @@ type monitorData struct {
 	InViolation bool    `json:"violated"`
 }
 
+// return package transit timeline
 func queryPackageTransit(graph *GraphManager, uid string) (*packageTransit, error) {
 	relatedNodes, err := queryRelatedNodes(graph, uid)
 	query := fmt.Sprintf("gremlin://g.V().has('Package','uid','%s').inE().order().by('eventTimestamp');", uid)
@@ -1785,6 +1786,7 @@ func queryRelatedNodes(graph *GraphManager, uid string) (map[string]tgdb.TGNode,
 	return result, nil
 }
 
+// retrieve details of a route corresponding to a package's parent container at a specified on-route start and end time
 func queryRouteDetail(graph *GraphManager, cons tgdb.TGNode, periodStart, periodEnd time.Time) (*routeDetail, error) {
 	result := &routeDetail{}
 	// get measurements of the base container if type is 'F'
@@ -1817,8 +1819,28 @@ func queryRouteDetail(graph *GraphManager, cons tgdb.TGNode, periodStart, period
 	route := data[0].(tgdb.TGNode)
 	result.RouteType = getAttributeAsString(route, "type")
 
-	// get departure and arrival event details
-	arriveEvt, err := queryRouteEvent(graph, route, "arrives", periodEnd)
+	// get departure event detailss
+	departEvt, err := queryRouteEvent(graph, route, "departs", result.RouteType, periodStart)
+	if err != nil {
+		if len(data) > 1 {
+			// evaluate next route to find a match on depart time
+			route = data[1].(tgdb.TGNode)
+			result.RouteType = getAttributeAsString(route, "type")
+			departEvt, err = queryRouteEvent(graph, route, "departs", result.RouteType, periodStart)
+		}
+		if err != nil {
+			fmt.Println("failed to query route departure", route, err)
+			return nil, err
+		}
+	}
+	result.RouteNbr = departEvt.RouteNbr
+	result.DepartureTime = departEvt.EventTime
+	result.From = departEvt.Location
+	result.FromLatitude = departEvt.Latitude
+	result.FromLongitude = departEvt.Longitude
+
+	// get arrival event details
+	arriveEvt, err := queryRouteEvent(graph, route, "arrives", result.RouteType, periodEnd)
 	if err != nil {
 		fmt.Println("failed to query route arrival", route, err)
 		return nil, err
@@ -1827,17 +1849,6 @@ func queryRouteDetail(graph *GraphManager, cons tgdb.TGNode, periodStart, period
 	result.To = arriveEvt.Location
 	result.ToLatitude = arriveEvt.Latitude
 	result.ToLongitude = arriveEvt.Longitude
-
-	departEvt, err := queryRouteEvent(graph, route, "departs", periodStart)
-	if err != nil {
-		fmt.Println("failed to query route departure", route, err)
-		return nil, err
-	}
-	result.RouteNbr = departEvt.RouteNbr
-	result.DepartureTime = departEvt.EventTime
-	result.From = departEvt.Location
-	result.FromLatitude = departEvt.Latitude
-	result.FromLongitude = departEvt.Longitude
 
 	return result, nil
 }
@@ -1851,14 +1862,17 @@ type routeEvent struct {
 }
 
 // route event info for eventType 'departs' or 'arrives'
-func queryRouteEvent(graph *GraphManager, route tgdb.TGNode, eventType string, refTime time.Time) (*routeEvent, error) {
+func queryRouteEvent(graph *GraphManager, route tgdb.TGNode, eventType, routeType string, refTime time.Time) (*routeEvent, error) {
 	query := fmt.Sprintf("gremlin://g.V().has('Route','routeNbr','%s').outE('%s').inV().simplePath().path();", getAttributeAsString(route, "routeNbr"), eventType)
 	data, err := graph.Query(query)
 	if err != nil || len(data) == 0 {
 		return nil, err
 	}
 
-	refYearDay := refTime.YearDay()
+	// pick route with the following conditions
+	//   1. routeType='A': eventTime is within 30 minute of the refTime
+	//   2. routeType='G' and eventType='arrives': eventTime > refTime and within 8 hours (i.e, deliveryTime before route end)
+	//   3. routeType='G' and eventType='departs': eventTime < refTime and within 8 hours (i.e., pickupTime after route start)
 	for _, path := range data {
 		entities, ok := path.([]interface{})
 		if !ok || len(entities) < 3 {
@@ -1867,7 +1881,17 @@ func queryRouteEvent(graph *GraphManager, route tgdb.TGNode, eventType string, r
 		edge := entities[1].(tgdb.TGEdge)
 		node := entities[2].(tgdb.TGNode)
 		eventTime := edge.GetAttribute("eventTimestamp").GetValue().(time.Time)
-		if eventTime.YearDay() == refYearDay {
+		var related bool
+		if routeType == "A" {
+			related = math.Abs(refTime.Sub(eventTime).Minutes()) < 30
+		} else {
+			if eventType == "departs" {
+				related = eventTime.Before(refTime.Add(time.Duration(30)*time.Minute)) && math.Abs(refTime.Sub(eventTime).Hours()) <= 8
+			} else {
+				related = refTime.Before(eventTime.Add(time.Duration(30)*time.Minute)) && math.Abs(eventTime.Sub(refTime).Hours()) <= 8
+			}
+		}
+		if related {
 			loc := fmt.Sprintf("%s: %s, %s", getAttributeAsString(node, "carrier"), getAttributeAsString(node, "iata"), getAttributeAsString(node, "description"))
 			return &routeEvent{
 				RouteNbr:  getAttributeAsString(route, "routeNbr"),

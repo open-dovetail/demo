@@ -90,7 +90,8 @@
         "passwd": "scott"
     },
     "monitoring": {
-        "enabled": true,
+        "enabled": false,
+        "violationRate": 0.5,
         "blockchainUser": "iot@org1",
         "blockchainService": "http://127.0.0.1:7979",
         "pickup": "shipping/pickuppackage",
