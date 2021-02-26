@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; echo "$(pwd)")"
 DEMO_HOME="$( dirname "${SCRIPT_DIR}" )"
 
 # start TGDB
-export TGDB_HOME=${HOME}/tibco/tgdb/3.0
+export TGDB_HOME=${TGDB_HOME:-"${HOME}/tibco/tgdb/3.0"}
 cd ${DEMO_HOME}/graphdb 
 nohup ./start.sh 2>&1 &
 
