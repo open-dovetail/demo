@@ -1,6 +1,6 @@
 # Global Logistics Services Demo
 
-This demo uses Dovetail and TIBCO graph DB to demonstrate a digital-twin type of application for a global logicstics services that pickup and delivery packages via multiple carriers. The blockchain stores key milestone events when environment-sensitive goods are picked up, delivered, and/or transfered between carriers, as well as IoT events that shows violation of shipping conditions.
+This demo uses Dovetail and TIBCO graph DB to demonstrate a digital-twin type of application for global logicstics services that manages the pickup and delivery packages by multiple carriers. The blockchain tracks key milestone events generated when environment-sensitive goods are picked up, delivered, and/or transfered between carriers, as well as IoT events that shows violation of required shipping conditions.
 
 ## Required Components
 
@@ -16,6 +16,6 @@ This demo uses Dovetail and TIBCO graph DB to demonstrate a digital-twin type of
 
 ## Start the backend components of the demo
 
-Start all backend components by executing the script [demo/az/start-all.sh](https://github.com/open-dovetail/demo/blob/master/az/start-all.sh), and test the components as described in [README.md](https://github.com/open-dovetail/demo/blob/master/az/README.md).
+Start all backend components by executing the script [demo/az/start-all.sh](https://github.com/open-dovetail/demo/blob/master/az/start-all.sh), and test components as described in [README.md](https://github.com/open-dovetail/demo/blob/master/az/README.md).
 
-The [README.md](https://github.com/open-dovetail/demo/blob/master/az/README.md) also describes how to create and setup a Linux VM in Azure, and start all the components in the VM. The same startup script [start-all.sh](https://github.com/open-dovetail/demo/blob/master/az/start-all.sh) works both locally on a laptop, or in an Azure Linux VM.
+The [README.md](https://github.com/open-dovetail/demo/blob/master/az/README.md) also describes how to create and setup a Linux VM in Azure, and start all the components in the VM. The same startup script [start-all.sh](https://github.com/open-dovetail/demo/blob/master/az/start-all.sh) works both locally on a laptop, or on an Azure Linux VM.
