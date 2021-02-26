@@ -124,7 +124,13 @@
                         },
                         "output": {
                             "code": "=$.code",
-                            "data": "=$.data"
+                            "data": "=$.data",
+                            "headers": {
+                                "mapping": {
+                                    "Access-Control-Allow-Origin": "*",
+                                    "Access-Control-Allow-Credentials": true
+                                }
+                            }
                         }
                     },
                     "reply": {
@@ -136,6 +142,11 @@
                                 "type": "json",
                                 "value": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"properties\":{\"carrier\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"eventTime\":{\"type\":\"string\"},\"latitude\":{\"type\":\"number\"},\"longitude\":{\"type\":\"number\"},\"toCarrier\":{\"type\":\"string\"},\"transactionType\":{\"type\":\"string\"},\"uid\":{\"type\":\"string\"},\"user\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
                                 "fe_metadata": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"properties\":{\"carrier\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"eventTime\":{\"type\":\"string\"},\"latitude\":{\"type\":\"number\"},\"longitude\":{\"type\":\"number\"},\"toCarrier\":{\"type\":\"string\"},\"transactionType\":{\"type\":\"string\"},\"uid\":{\"type\":\"string\"},\"user\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                            },
+                            "headers": {
+                                "type": "json",
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -165,7 +176,13 @@
                         },
                         "output": {
                             "code": "=$.code",
-                            "data": "=$.data"
+                            "data": "=$.data",
+                            "headers": {
+                                "mapping": {
+                                    "Access-Control-Allow-Credentials": true,
+                                    "Access-Control-Allow-Origin": "*"
+                                }
+                            }
                         }
                     },
                     "reply": {
@@ -177,6 +194,11 @@
                                 "type": "json",
                                 "value": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"properties\":{\"containerID\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"eventTime\":{\"type\":\"string\"},\"inViolation\":{\"type\":\"boolean\"},\"maxValue\":{\"type\":\"number\"},\"measurementType\":{\"type\":\"string\"},\"minValue\":{\"type\":\"number\"},\"periodStart\":{\"type\":\"string\"},\"uid\":{\"type\":\"string\"},\"user\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
                                 "fe_metadata": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"properties\":{\"containerID\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"eventTime\":{\"type\":\"string\"},\"inViolation\":{\"type\":\"boolean\"},\"maxValue\":{\"type\":\"number\"},\"measurementType\":{\"type\":\"string\"},\"minValue\":{\"type\":\"number\"},\"periodStart\":{\"type\":\"string\"},\"uid\":{\"type\":\"string\"},\"user\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                            },
+                            "headers": {
+                                "type": "json",
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -288,7 +310,13 @@
                         },
                         "output": {
                             "code": "=$.code",
-                            "data": "=$.data"
+                            "data": "=$.data",
+                            "headers": {
+                                "mapping": {
+                                    "Access-Control-Allow-Credentials": true,
+                                    "Access-Control-Allow-Origin": "*"
+                                }
+                            }
                         }
                     },
                     "reply": {
@@ -300,6 +328,11 @@
                                 "type": "json",
                                 "value": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"properties\":{\"content\":{\"properties\":{\"count\":{\"type\":\"integer\"},\"description\":{\"type\":\"string\"},\"end-lot-number\":{\"type\":\"string\"},\"producer\":{\"type\":\"string\"},\"product\":{\"type\":\"string\"},\"start-lot-number\":{\"type\":\"string\"}},\"type\":\"object\"},\"depth\":{\"type\":\"number\"},\"from\":{\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"postal-code\":{\"type\":\"string\"},\"state-province\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"}},\"type\":\"object\"},\"handling\":{\"type\":\"string\"},\"height\":{\"type\":\"number\"},\"recipient\":{\"type\":\"string\"},\"sender\":{\"type\":\"string\"},\"to\":{\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"postal-code\":{\"type\":\"string\"},\"state-province\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"}},\"type\":\"object\"},\"uid\":{\"type\":\"string\"},\"weight\":{\"type\":\"number\"},\"width\":{\"type\":\"number\"}},\"type\":\"object\"}},\"type\":\"object\"}",
                                 "fe_metadata": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"properties\":{\"content\":{\"properties\":{\"count\":{\"type\":\"integer\"},\"description\":{\"type\":\"string\"},\"end-lot-number\":{\"type\":\"string\"},\"producer\":{\"type\":\"string\"},\"product\":{\"type\":\"string\"},\"start-lot-number\":{\"type\":\"string\"}},\"type\":\"object\"},\"depth\":{\"type\":\"number\"},\"from\":{\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"postal-code\":{\"type\":\"string\"},\"state-province\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"}},\"type\":\"object\"},\"handling\":{\"type\":\"string\"},\"height\":{\"type\":\"number\"},\"recipient\":{\"type\":\"string\"},\"sender\":{\"type\":\"string\"},\"to\":{\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"postal-code\":{\"type\":\"string\"},\"state-province\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"}},\"type\":\"object\"},\"uid\":{\"type\":\"string\"},\"weight\":{\"type\":\"number\"},\"width\":{\"type\":\"number\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                            },
+                            "headers": {
+                                "type": "json",
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -370,7 +403,13 @@
                         },
                         "output": {
                             "code": "=$.code",
-                            "data": "=$.data"
+                            "data": "=$.data",
+                            "headers": {
+                                "mapping": {
+                                    "Access-Control-Allow-Credentials": true,
+                                    "Access-Control-Allow-Origin": "*"
+                                }
+                            }
                         }
                     },
                     "reply": {
@@ -382,6 +421,11 @@
                                 "type": "json",
                                 "value": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"items\":{\"properties\":{\"key\":{\"type\":\"string\"},\"value\":{\"properties\":{\"carrier\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"eventTime\":{\"type\":\"string\"},\"latitude\":{\"type\":\"number\"},\"longitude\":{\"type\":\"number\"},\"toCarrier\":{\"type\":\"string\"},\"transactionType\":{\"type\":\"string\"},\"uid\":{\"type\":\"string\"},\"user\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"}",
                                 "fe_metadata": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"items\":{\"properties\":{\"key\":{\"type\":\"string\"},\"value\":{\"properties\":{\"carrier\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"eventTime\":{\"type\":\"string\"},\"latitude\":{\"type\":\"number\"},\"longitude\":{\"type\":\"number\"},\"toCarrier\":{\"type\":\"string\"},\"transactionType\":{\"type\":\"string\"},\"uid\":{\"type\":\"string\"},\"user\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"}"
+                            },
+                            "headers": {
+                                "type": "json",
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -411,7 +455,13 @@
                         },
                         "output": {
                             "code": "=$.code",
-                            "data": "=$.data"
+                            "data": "=$.data",
+                            "headers": {
+                                "mapping": {
+                                    "Access-Control-Allow-Credentials": true,
+                                    "Access-Control-Allow-Origin": "*"
+                                }
+                            }
                         }
                     },
                     "reply": {
@@ -423,6 +473,11 @@
                                 "type": "json",
                                 "value": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"items\":{\"properties\":{\"key\":{\"type\":\"string\"},\"value\":{\"properties\":{\"containerID\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"eventTime\":{\"type\":\"string\"},\"inViolation\":{\"type\":\"boolean\"},\"maxValue\":{\"type\":\"number\"},\"measurementType\":{\"type\":\"string\"},\"minValue\":{\"type\":\"number\"},\"periodStart\":{\"type\":\"string\"},\"uid\":{\"type\":\"string\"},\"user\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"}",
                                 "fe_metadata": "{\"properties\":{\"message\":{\"type\":\"string\"},\"result\":{\"items\":{\"properties\":{\"key\":{\"type\":\"string\"},\"value\":{\"properties\":{\"containerID\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"eventTime\":{\"type\":\"string\"},\"inViolation\":{\"type\":\"boolean\"},\"maxValue\":{\"type\":\"number\"},\"measurementType\":{\"type\":\"string\"},\"minValue\":{\"type\":\"number\"},\"periodStart\":{\"type\":\"string\"},\"uid\":{\"type\":\"string\"},\"user\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"}"
+                            },
+                            "headers": {
+                                "type": "json",
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -1612,5 +1667,5 @@
     },
     "connections": {},
     "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9vcGVuLWRvdmV0YWlsL2RvdmV0YWlsLWNvbnRyaWIvdHJpZ2dlci9yZXN0IiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L0RlZmF1bHQvdHJpZ2dlci9yZXN0In0seyJyZWYiOiJnaXRodWIuY29tL29wZW4tZG92ZXRhaWwvZmFicmljLWNsaWVudC9hY3Rpdml0eS9yZXF1ZXN0IiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L0RlZmF1bHQvYWN0aXZpdHkvcmVxdWVzdCJ9LHsicmVmIjoiZ2l0aHViLmNvbS9vcGVuLWRvdmV0YWlsL2ZhYnJpYy1jbGllbnQvYWN0aXZpdHkvc2lnbmNlcnQiLCJzM2xvY2F0aW9uIjoie1VTRVJJRH0vRGVmYXVsdC9hY3Rpdml0eS9zaWduY2VydCJ9LHsicmVmIjoiZ2l0aHViLmNvbS9vcGVuLWRvdmV0YWlsL2RvdmV0YWlsLWNvbnRyaWIvZnVuY3Rpb24vZG92ZXRhaWwiLCJzM2xvY2F0aW9uIjoiZmxvZ28vZG92ZXRhaWwifV0=",
-    "fe_metadata": "UEsDBAoAAAAIAIEdV1KrqSRGFQAAABMAAAAIAAAAYXBwLmpzb26rViopykxPTy1yy8kvL1ayio6tBQBQSwECFAAKAAAACACBHVdSq6kkRhUAAAATAAAACAAAAAAAAAAAAAAAAAAAAAAAYXBwLmpzb25QSwUGAAAAAAEAAQA2AAAAOwAAAAAA"
+    "fe_metadata": "UEsDBAoAAAAIAGOxWlKrqSRGFQAAABMAAAAIAAAAYXBwLmpzb26rViopykxPTy1yy8kvL1ayio6tBQBQSwECFAAKAAAACABjsVpSq6kkRhUAAAATAAAACAAAAAAAAAAAAAAAAAAAAAAAYXBwLmpzb25QSwUGAAAAAAEAAQA2AAAAOwAAAAAA"
 }

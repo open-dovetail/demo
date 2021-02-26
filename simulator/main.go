@@ -90,6 +90,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, err.Error(), status)
 		}
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(status)
 		w.Write(resp)
 	case "PUT", "POST":
@@ -97,6 +98,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, err.Error(), status)
 		}
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(status)
 		w.Write(resp)
 	default:
