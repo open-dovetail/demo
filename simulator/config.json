@@ -1,14 +1,103 @@
 {
-    "message": "Certificate:\n    Data:\n        Version: 3 (0x2)\n        Serial Number: 465057181654456744792992741377116751511667494520 (0x5175e2a09c414085161a1ad660332c6823524e78)\n    Signature Algorithm: ECDSA-SHA256\n        Issuer: C=US,ST=North Carolina,L=Durham,O=org1.example.com,CN=ca.org1.example.com\n        Validity\n            Not Before: Feb 26 00:18:00 2021 UTC\n            Not After : Feb 26 00:23:00 2022 UTC\n        Subject: C=US,ST=North Carolina,O=Hyperledger,OU=client,CN=nlsadm@org1.example.com\n        Subject Public Key Info:\n            Public Key Algorithm: ECDSA\n                Public-Key: (256 bit)\n                X:\n                    77:16:5e:0d:a1:62:8c:a5:23:f9:11:05:89:a5:22:\n                    09:15:d0:c2:24:f1:ad:81:6f:9c:ca:63:b4:69:08:\n                    5b:35\n                Y:\n                    cd:61:fc:d1:cd:e3:73:78:97:0e:33:22:f4:97:90:\n                    5b:56:4a:5f:59:5b:11:14:c7:c9:42:db:4f:d9:fa:\n                    fd:03\n                Curve: P-256\n        X509v3 extensions:\n            X509v3 Key Usage: critical\n                Digital Signature\n            X509v3 Basic Constraints: critical\n                CA:FALSE\n            X509v3 Subject Key Identifier:\n                C8:65:92:F0:F3:AB:4A:F6:82:7B:F0:8F:B7:CF:F3:8C:43:E3:A4:A5\n            X509v3 Authority Key Identifier:\n                keyid:FD:53:87:35:0E:9A:A1:AE:4F:C7:DD:68:F0:D1:BF:16:2A:96:7E:5A\n            X509v3 Subject Alternative Name:\n                DNS:Playing-Branes.local\n            Unknown extension 1.2.3.4.5.6.7.8.1\n\n    Signature Algorithm: ECDSA-SHA256\n         30:45:02:21:00:9f:ca:b9:b2:b2:ca:c9:00:a3:b5:27:30:42:\n         98:02:26:fe:99:c3:b9:1d:96:14:a5:04:5c:a4:7e:fc:5e:04:\n         f6:02:20:5e:8c:c1:13:de:df:de:b3:56:cb:86:34:12:94:3c:\n         52:d7:5a:a3:56:31:b6:20:90:43:37:9d:76:c0:fe:14:6b\n",
-    "result": {
-        "carrier": "NLS",
-        "docType": "packageTransaction",
-        "eventTime": "2021-02-27T02:29:41Z",
-        "latitude": 39.7392,
-        "longitude": -104.9903,
-        "toCarrier": "SLS",
-        "transactionType": "transfer",
-        "uid": "c2d2311d3c3c6e08",
-        "user": "nlsadm@org1"
+    "carriers": {
+        "SLS": {
+            "description": "South Logistics Services",
+            "blockchainUser": "slsadm@org2",
+            "offices": {
+                "LAX": {
+                    "description": "Los Angeles, CA",
+                    "gmtOffset": "-08:00",
+                    "latitude": 33.9416,
+                    "longitude": -118.4085
+                },
+                "HOU": {
+                    "description": "Houston, TX",
+                    "gmtOffset": "-06:00",
+                    "latitude": 29.7604,
+                    "longitude": -95.3698
+                },
+                "ATL": {
+                    "description": "Atlanta, GA",
+                    "gmtOffset": "-05:00",
+                    "latitude": 33.7490,
+                    "longitude": -84.3880
+                },
+                "DEN": {
+                    "hub": true,
+                    "description": "Denver, CO",
+                    "gmtOffset": "-07:00",
+                    "latitude": 39.7392,
+                    "longitude": -104.9903
+                }
+            }
+        },
+        "NLS": {
+            "description": "North Logistics Services",
+            "blockchainUser": "nlsadm@org1",
+            "offices": {
+                "SEA": {
+                    "description": "Seattle, WA",
+                    "gmtOffset": "-08:00",
+                    "latitude": 47.6062,
+                    "longitude": -122.3321
+                },
+                "ORD": {
+                    "description": "Chicago, IL",
+                    "gmtOffset": "-06:00",
+                    "latitude": 41.8781,
+                    "longitude": -87.6298
+                },
+                "JFK": {
+                    "description": "New York, NY",
+                    "gmtOffset": "-05:00",
+                    "latitude": 40.7128,
+                    "longitude": -74.0060
+                },
+                "DEN": {
+                    "hub": true,
+                    "description": "Denver, CO",
+                    "gmtOffset": "-07:00",
+                    "latitude": 39.7392,
+                    "longitude": -104.9903
+                }
+            }
+        }
+    },
+    "products": {
+        "PfizerVaccine": {
+            "handlingCd": "P",
+            "minValue": -80,
+            "maxValue": -60
+        },
+        "ModernaVaccine": {
+            "handlingCd": "P",
+            "minValue": 2,
+            "maxValue": 8
+        },
+        "FrozenMeat": {
+            "handlingCd": "P",
+            "maxValue": -18
+        },
+        "Fruit": {
+            "handlingCd": "P",
+            "maxValue": 4,
+            "minValue": 1
+        }
+    },
+    "graphdb": {
+        "url": "tcp://127.0.0.1:8222/{dbName=shipdb}",
+        "user": "scott",
+        "passwd": "scott"
+    },
+    "monitoring": {
+        "enabled": true,
+        "violationRate": 0.5,
+        "blockchainUser": "iot@org1",
+        "blockchainService": "http://127.0.0.1:7979",
+        "pickup": "shipping/pickuppackage",
+        "transfer": "shipping/transferpackage",
+        "transferAck": "shipping/transferpackageack",
+        "deliver": "shipping/deliverpackage",
+        "updateTemperature": "shipping/updatetemperature"
     }
 }
