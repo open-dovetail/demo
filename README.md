@@ -1,6 +1,6 @@
 # Global Logistics Services Demo
 
-This demo uses Dovetail and TIBCO graph DB to demonstrate a digital-twin type of application for global logicstics services that manages the pickup and delivery packages by multiple carriers. The blockchain tracks key milestone events generated when environment-sensitive goods are picked up, delivered, and/or transfered between carriers, as well as IoT events that shows violation of required shipping conditions.
+This demo uses Dovetail and TIBCO graph DB to demonstrate a digital-twin type of application for global logicstics services that manages the pickup and delivery packages by multiple carriers. The blockchain tracks key milestone events generated when environment-sensitive goods are picked up, delivered, and/or transferred between carriers, as well as IoT events that shows violation of required shipping conditions.
 
 ## Required Components
 
