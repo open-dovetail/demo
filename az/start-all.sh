@@ -6,13 +6,13 @@
 
 # build and start demo and related services
 
-SCRIPT_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; echo "$(pwd)")"
 DEMO_HOME="$( dirname "${SCRIPT_DIR}" )"
 
 # start TGDB
-export TGDB_HOME=${HOME}/tgdb/3.0
-cd ${DEMO_HOME}/graphdb
-./start.sh
+export TGDB_HOME=${HOME}/tibco/tgdb/3.0
+cd ${DEMO_HOME}/graphdb 
+nohup ./start.sh 2>&1 &
 
 # build and start Hyperledger Fabric test-network
 cd ${DEMO_HOME}/blockchain

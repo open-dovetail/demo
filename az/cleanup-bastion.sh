@@ -8,7 +8,7 @@
 # usage: cleanup-bastion.sh env region
 # default value: ENV_NAME="dtwin", AZ_REGION="westus2"
 
-cd "$( dirname "${BASH_SOURCE[0]}" )"
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")"; echo "$(pwd)")"
 
 if [ -z "${1}" ]; then
   ENV_NAME="dtwin"

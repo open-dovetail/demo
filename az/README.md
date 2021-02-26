@@ -57,11 +57,11 @@ Log on to the `bastion` host, e.g., (your real host IP will be different):
 ssh fab@40.65.112.23
 ```
 
-Start all required services scripted in [start.sh](./start.sh)
+Start all required services scripted in [start-all.sh](./start-all.sh)
 
 ```bash
 cd /path/to/demo/az
-./start.sh
+./start-all.sh
 ```
 
 The blockchain client `shipping_rest_app` service will listen on `http://40.65.112.23:7979`. The `simulator` service will listen on `http://40.65.112.23:7980`. To get access to these services, the demo presenter can provide the presenter's IP address, i.e., the output from `curl ifconfig.me`, and add it to the Azure security rule.
