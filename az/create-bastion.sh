@@ -50,7 +50,7 @@ fi
 myip=$(curl ifconfig.me)
 echo "set security rule to allow ssh from host ${myip}"
 az network nsg rule update -g ${RESOURCE_GROUP} --nsg-name ${BASTION_HOST}NSG --name default-allow-ssh --source-address-prefixes ${myip}
-az network nsg rule create -g ${RESOURCE_GROUP} --nsg-name ${BASTION_HOST}NSG --name allow_dtwin_svc  --priority 4096 --source-address-prefixes ${myip} --destination-port-ranges 7979 7981 --access Allow --protocol Tcp
+az network nsg rule create -g ${RESOURCE_GROUP} --nsg-name ${BASTION_HOST}NSG --name allow_dtwin_svc  --priority 4096 --source-address-prefixes ${myip} --destination-port-ranges 7979-7981 --access Allow --protocol Tcp
 
 echo "collect public IP of bastion host ${BASTION_HOST} ..."
 pubip=$(az vm list-ip-addresses -n ${BASTION_HOST} -g ${RESOURCE_GROUP} --query "[0].virtualMachine.network.publicIpAddresses[0].ipAddress" -o tsv)
