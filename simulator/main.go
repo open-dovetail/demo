@@ -14,6 +14,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/open-dovetail/demo/simulator/impl"
+	"github.com/rs/cors"
 )
 
 var configFile, httpPort string
@@ -75,15 +76,17 @@ func main() {
 	}
 
 	// start HTTP listener
-	http.HandleFunc("/", handler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handlerFunc)
 	glog.Info("Starting HTTP listener on port ", httpPort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", httpPort), nil); err != nil {
+	handler := cors.Default().Handler(mux)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", httpPort), handler); err != nil {
 		glog.Error(err)
 		panic(err)
 	}
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func handlerFunc(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		resp, status, err := handleQueryRequest(r)
