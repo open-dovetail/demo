@@ -57,7 +57,18 @@ Log on to the `bastion` host, e.g., (your real host IP will be different):
 ssh fab@40.65.112.23
 ```
 
-Set `$TGDB_HOME` to where the TIBCO graph DB is installed.  Then, start all required services scripted in [start-all.sh](./start-all.sh)
+Set `$TGDB_HOME` to where the TIBCO graph DB is installed, and check Flogo and TGDB installation:
+
+```bash
+flogo --version
+cd /path/to/demo/az
+export TGDB_HOME=$HOME/tgdb/3.0
+cd $TGDB_HOME/bin
+./tgdb -i -f -c tgdb.conf
+# type y to accept license when prompt
+```
+
+Then, start all required services scripted in [start-all.sh](./start-all.sh)
 
 ```bash
 cd /path/to/demo/az

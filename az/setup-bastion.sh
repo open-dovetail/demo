@@ -16,6 +16,7 @@ mkdir -p ~/go/{bin,pkg,src}
 echo "export GOPATH=$HOME/go" >> .profile
 echo "export PATH=$HOME/go/bin:/usr/local/go/bin:$PATH" >> .profile
 rm -f $GO_ZIP
+. .profile
 
 # setup for dovetail
 echo "setup dovetail"

@@ -22,7 +22,7 @@ echo "ENV_NAME: ${ENV_NAME}, AZ_REGION: ${AZ_REGION}"
 source env.sh ${ENV_NAME} ${AZ_REGION}
 
 starttime=$(date +%s)
-echo "create bastion host may take a few mminutes ..."
+echo "create bastion host may take 4-5 mminutes ..."
 
 # create resource group if it does not exist already
 check=$(az group show -g ${RESOURCE_GROUP} --query "properties.provisioningState" -o tsv)
@@ -39,16 +39,18 @@ if [ "${check}" == "Succeeded" ]; then
   echo "bastion host ${BASTION_HOST} is already provisioned"
 else
   echo "create bastion host ${BASTION_HOST} with admin-user ${BASTION_USER} ..."
-  az vm create -n ${BASTION_HOST} -g ${RESOURCE_GROUP} --image UbuntuLTS --generate-ssh-keys --admin-username ${BASTION_USER}
-  # Note: docker extension v1.2.2 does not work with Hyperledger Fabric v2.2.1, so use the older version - 1.1.1606092330
-  az vm extension set -n DockerExtension --publisher Microsoft.Azure.Extensions --version 1.2.0  --vm-name ${BASTION_HOST} -g ${RESOURCE_GROUP}
+  # check list of available vm size - az vm list-sizes -l westus2 --output table
+  az vm create -n ${BASTION_HOST} -g ${RESOURCE_GROUP} --image UbuntuLTS --size Standard_B4ms --generate-ssh-keys --admin-username ${BASTION_USER}
+  # Note: docker extension v1.2.2 does not work with Hyperledger Fabric v2.2.1, so use the older version - 1.2.0
+  # check available Docker versions: az vm extension image list-versions --publisher Microsoft.Azure.Extensions -l westus2 -n DockerExtension -otable
+  az vm extension set -n DockerExtension --publisher Microsoft.Azure.Extensions --version 1.2.0 --vm-name ${BASTION_HOST} -g ${RESOURCE_GROUP}
 fi
 
 # update security rule for ssh from localhost
 myip=$(curl ifconfig.me)
 echo "set security rule to allow ssh from host ${myip}"
 az network nsg rule update -g ${RESOURCE_GROUP} --nsg-name ${BASTION_HOST}NSG --name default-allow-ssh --source-address-prefixes ${myip}
-az network nsg rule create -g ${RESOURCE_GROUP} --nsg-name ${BASTION_HOST}NSG --name allow_dtwin_svc  --priority 4096 --source-address-prefixes ${myip} --destination-port-ranges 7979 7980 --access Allow --protocol Tcp
+az network nsg rule create -g ${RESOURCE_GROUP} --nsg-name ${BASTION_HOST}NSG --name allow_dtwin_svc  --priority 4096 --source-address-prefixes ${myip} --destination-port-ranges 7979 7981 --access Allow --protocol Tcp
 
 echo "collect public IP of bastion host ${BASTION_HOST} ..."
 pubip=$(az vm list-ip-addresses -n ${BASTION_HOST} -g ${RESOURCE_GROUP} --query "[0].virtualMachine.network.publicIpAddresses[0].ipAddress" -o tsv)
