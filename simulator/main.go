@@ -79,7 +79,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handlerFunc)
 	glog.Info("Starting HTTP listener on port ", httpPort)
-	handler := cors.Default().Handler(mux)
+	handler := cors.AllowAll().Handler(mux)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", httpPort), handler); err != nil {
 		glog.Error(err)
 		panic(err)

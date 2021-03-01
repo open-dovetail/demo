@@ -76,7 +76,10 @@ build-rest: shipping_rest_fe.json
 
 .PHONY: run
 run:
-	FLOGO_APP_PROP_RESOLVERS=env FLOGO_APP_PROPS_ENV=auto PORT=$(PORT) CHAINCODE=$(CC_NAME) FLOGO_LOG_LEVEL=DEBUG FLOGO_SCHEMA_SUPPORT=true FLOGO_SCHEMA_VALIDATION=false CRYPTO_PATH=$(FAB_PATH)/test-network/organizations nohup $(SRC_PATH)/$(APP_NAME)_app 2>&1 &
+	# Flogo rest trigger config for CORS headers are required to specify auth header.  It can be tested using, e.g.,
+	# curl -i -X OPTIONS -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Accept,Authorization" -H "Origin: http://localhost:7979" -H "Authorization: Basic VXNlcjE6" -H "Content-Type: application/json" -d '{"uid":"4dd6d722229ae46f","transactionType":"transfer"}' http://52.229.51.17:7979/shipping/packagetimeline
+	FLOGO_APP_PROP_RESOLVERS=env FLOGO_APP_PROPS_ENV=auto PORT=$(PORT) CHAINCODE=$(CC_NAME) FLOGO_LOG_LEVEL=DEBUG FLOGO_SCHEMA_SUPPORT=true FLOGO_SCHEMA_VALIDATION=false CRYPTO_PATH=$(FAB_PATH)/test-network/organizations REST_TRIGGERCORS_ALLOW_CREDENTIALS=true REST_TRIGGERCORS_ALLOW_HEADERS="Content-Type, Content-Length, Accept-Encodi
+ng, X-CSRF-Token, X-Requested-With, Accept, Accept-Language, Authorization" nohup $(SRC_PATH)/$(APP_NAME)_app 2>&1 &
 
 .PHONY: test
 test:
