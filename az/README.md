@@ -26,7 +26,7 @@ cd /path/to/open-dovetail/demo/az
 This script accepts 2 parameters for you to specify a different Azure environment, e.g.,
 
 ```bash
-./create-bastion.sh  dtwin westus2
+./create-bastion.sh dtwin westus2
 ```
 
 would create an AKS cluster with name prefix of `dtwin`, at the Azure location of `westus2`.
@@ -60,8 +60,9 @@ ssh fab@40.65.112.23
 Set `$TGDB_HOME` to where the TIBCO graph DB is installed, and check Flogo and TGDB installation:
 
 ```bash
+cd $HOME/open-dovetail/fabric-chaincode/scripts
 flogo --version
-cd /path/to/demo/az
+
 export TGDB_HOME=$HOME/tgdb/3.0
 cd $TGDB_HOME/bin
 ./tgdb -i -f -c tgdb.conf
@@ -71,7 +72,7 @@ cd $TGDB_HOME/bin
 Then, start all required services scripted in [start-all.sh](./start-all.sh)
 
 ```bash
-cd /path/to/demo/az
+cd $HOME/open-dovetail/demo/az
 export TGDB_HOME=$HOME/tgdb/3.0
 ./start-all.sh
 ```
@@ -81,7 +82,7 @@ The blockchain client `shipping_rest_app` service will listen on `http://40.65.1
 If the bastion VM is at IP address `40.65.112.23`, you can create a package using the sample data [package.json](../simulator/package.json):
 
 ```bash
-cd /path/to/demo/simulator
+cd $HOME/open-dovetail/demo/simulator
 curl -X PUT -H "Content-Type: application/json" -d @package.json http://40.65.112.23:7980/packages/create
 ```
 
