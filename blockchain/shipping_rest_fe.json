@@ -128,7 +128,9 @@
                             "headers": {
                                 "mapping": {
                                     "Access-Control-Allow-Origin": "*",
-                                    "Access-Control-Allow-Credentials": true
+                                    "Access-Control-Allow-Credentials": true,
+                                    "Access-Control-Allow-Headers": "*",
+                                    "Access-Control-Allow-Methods": "*"
                                 }
                             }
                         }
@@ -145,8 +147,8 @@
                             },
                             "headers": {
                                 "type": "json",
-                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
-                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -180,7 +182,9 @@
                             "headers": {
                                 "mapping": {
                                     "Access-Control-Allow-Credentials": true,
-                                    "Access-Control-Allow-Origin": "*"
+                                    "Access-Control-Allow-Origin": "*",
+                                    "Access-Control-Allow-Headers": "*",
+                                    "Access-Control-Allow-Methods": "*"
                                 }
                             }
                         }
@@ -197,8 +201,8 @@
                             },
                             "headers": {
                                 "type": "json",
-                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
-                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -314,7 +318,9 @@
                             "headers": {
                                 "mapping": {
                                     "Access-Control-Allow-Credentials": true,
-                                    "Access-Control-Allow-Origin": "*"
+                                    "Access-Control-Allow-Origin": "*",
+                                    "Access-Control-Allow-Headers": "*",
+                                    "Access-Control-Allow-Methods": "*"
                                 }
                             }
                         }
@@ -331,8 +337,8 @@
                             },
                             "headers": {
                                 "type": "json",
-                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
-                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -407,7 +413,9 @@
                             "headers": {
                                 "mapping": {
                                     "Access-Control-Allow-Credentials": true,
-                                    "Access-Control-Allow-Origin": "*"
+                                    "Access-Control-Allow-Origin": "*",
+                                    "Access-Control-Allow-Headers": "*",
+                                    "Access-Control-Allow-Methods": "*"
                                 }
                             }
                         }
@@ -424,8 +432,8 @@
                             },
                             "headers": {
                                 "type": "json",
-                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
-                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -459,7 +467,9 @@
                             "headers": {
                                 "mapping": {
                                     "Access-Control-Allow-Credentials": true,
-                                    "Access-Control-Allow-Origin": "*"
+                                    "Access-Control-Allow-Origin": "*",
+                                    "Access-Control-Allow-Headers": "*",
+                                    "Access-Control-Allow-Methods": "*"
                                 }
                             }
                         }
@@ -476,8 +486,8 @@
                             },
                             "headers": {
                                 "type": "json",
-                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
-                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Access-Control-Allow-Credentials\":{\"type\":\"boolean\"},\"Access-Control-Allow-Headers\":{\"type\":\"string\"},\"Access-Control-Allow-Methods\":{\"type\":\"string\"},\"Access-Control-Allow-Origin\":{\"type\":\"string\"}}}"
                             }
                         },
                         "output": {
@@ -1667,5 +1677,5 @@
     },
     "connections": {},
     "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9vcGVuLWRvdmV0YWlsL2RvdmV0YWlsLWNvbnRyaWIvdHJpZ2dlci9yZXN0IiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L0RlZmF1bHQvdHJpZ2dlci9yZXN0In0seyJyZWYiOiJnaXRodWIuY29tL29wZW4tZG92ZXRhaWwvZmFicmljLWNsaWVudC9hY3Rpdml0eS9yZXF1ZXN0IiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L0RlZmF1bHQvYWN0aXZpdHkvcmVxdWVzdCJ9LHsicmVmIjoiZ2l0aHViLmNvbS9vcGVuLWRvdmV0YWlsL2ZhYnJpYy1jbGllbnQvYWN0aXZpdHkvc2lnbmNlcnQiLCJzM2xvY2F0aW9uIjoie1VTRVJJRH0vRGVmYXVsdC9hY3Rpdml0eS9zaWduY2VydCJ9LHsicmVmIjoiZ2l0aHViLmNvbS9vcGVuLWRvdmV0YWlsL2RvdmV0YWlsLWNvbnRyaWIvZnVuY3Rpb24vZG92ZXRhaWwiLCJzM2xvY2F0aW9uIjoiZmxvZ28vZG92ZXRhaWwifV0=",
-    "fe_metadata": "UEsDBAoAAAAIAGOxWlKrqSRGFQAAABMAAAAIAAAAYXBwLmpzb26rViopykxPTy1yy8kvL1ayio6tBQBQSwECFAAKAAAACABjsVpSq6kkRhUAAAATAAAACAAAAAAAAAAAAAAAAAAAAAAAYXBwLmpzb25QSwUGAAAAAAEAAQA2AAAAOwAAAAAA"
+    "fe_metadata": "UEsDBAoAAAAIAMCNYVKrqSRGFQAAABMAAAAIAAAAYXBwLmpzb26rViopykxPTy1yy8kvL1ayio6tBQBQSwECFAAKAAAACADAjWFSq6kkRhUAAAATAAAACAAAAAAAAAAAAAAAAAAAAAAAYXBwLmpzb25QSwUGAAAAAAEAAQA2AAAAOwAAAAAA"
 }

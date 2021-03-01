@@ -28,7 +28,7 @@ export AZ_REGION=${2}
 export RESOURCE_GROUP=${ENV_NAME}RG
 export BASTION_HOST=${ENV_NAME}Bastion
 # public IP will be updated when bastion host is created
-export BASTION_IP=40.65.112.23
+export BASTION_IP=52.229.51.17
 export BASTION_USER=${ENV_NAME}
 
 export SCRIPT_HOME=$(getScriptDir)
