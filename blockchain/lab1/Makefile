@@ -6,7 +6,7 @@
 #
 MAKEFILE_THIS := $(lastword $(MAKEFILE_LIST))
 SRC_PATH      := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_THIS))))
-DOVETAIL_PATH := $(SRC_PATH)/../..
+DOVETAIL_PATH := $(SRC_PATH)/../../..
 
 CONTRACT      := contract.json
 FAB_PATH      ?= $(DOVETAIL_PATH)/hyperledger/fabric-samples
@@ -41,13 +41,13 @@ build: $(CONTRACT) clean
 .PHONY: deploy
 deploy: $(CC_NAME)_1.0.tar.gz
 	cp $(CC_NAME)_1.0.tar.gz $(CC_DEPLOY)
-	cp cc-init.sh $(FAB_PATH)/test-network/cc-init-shipping.sh
+	cp ../cc-init.sh $(FAB_PATH)/test-network/cc-init-shipping.sh
 	cp cc-test.sh $(FAB_PATH)/test-network/cc-test-shipping.sh
 
 .PHONY: start
 start:
 	cd $(FAB_PATH)/test-network && ./network.sh up createChannel -ca
-	$(SRC_PATH)/gen-certs.sh
+	$(SRC_PATH)/../gen-certs.sh
 
 .PHONY: cc-init
 cc-init: $(FAB_PATH)/test-network/cc-init-shipping.sh
@@ -71,21 +71,16 @@ build-client: $(CONTRACT) clean-client
 	flogo contract2rest $(FE) -c $(CONTRACT) -o $(APP_FILE)
 	$(APP_BUILD)/build.sh $(APP_FILE) $(NETWORK) $(MATCHER)
 
-.PHONY: build-rest
-build-rest: shipping_rest_fe.json
-	cp shipping_rest_fe.json $(APP_FILE)
-	$(APP_BUILD)/build.sh $(APP_FILE) $(NETWORK) $(MATCHER)
-
 .PHONY: run
 run:
 	# Flogo rest trigger config for CORS headers are required to specify auth header.  It can be tested using, e.g.,
 	# curl -i -X OPTIONS -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Accept,Authorization" -H "Origin: http://localhost:7979" -H "Authorization: Basic VXNlcjE6" -H "Content-Type: application/json" -d '{"uid":"4dd6d722229ae46f","transactionType":"transfer"}' http://52.229.51.17:7979/shipping/packagetimeline
-	FLOGO_APP_PROP_RESOLVERS=env FLOGO_APP_PROPS_ENV=auto PORT=$(PORT) CHAINCODE=$(CC_NAME) FLOGO_LOG_LEVEL=DEBUG FLOGO_SCHEMA_SUPPORT=true FLOGO_SCHEMA_VALIDATION=false CRYPTO_PATH=$(FAB_PATH)/test-network/organizations REST_TRIGGERCORS_ALLOW_CREDENTIALS=true REST_TRIGGERCORS_ALLOW_HEADERS="Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Requested-With, Accept, Accept-Language, Authorization" nohup $(SRC_PATH)/$(APP_NAME)_app 2>&1 &
+	FLOGO_APP_PROP_RESOLVERS=env FLOGO_APP_PROPS_ENV=auto PORT=$(PORT) CHAINCODE=$(CC_NAME) FLOGO_LOG_LEVEL=DEBUG FLOGO_SCHEMA_SUPPORT=true FLOGO_SCHEMA_VALIDATION=false CRYPTO_PATH=$(FAB_PATH)/test-network/organizations REST_TRIGGERCORS_ALLOW_CREDENTIALS=true REST_TRIGGERCORS_ALLOW_HEADERS="Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Requested-With, Accept, Accept-Language, Authorization" $(SRC_PATH)/$(APP_NAME)_app
 
 .PHONY: test
 test:
 	echo "prepare package transactions ..."
-	curl -u nlsadm: -X POST -H 'Content-Type: application/json' -d '{"uid":"677e9dcf985c8902","eventTime":"2021-02-12 09:57:25","latitude":40.8077,"longitude":-74.0692,"packageDetail":"{ \"uid\": \"677e9dcf985c8902\", \"from\": { \"street\": \"E 16th St.\", \"postal-code\": \"11212\" }, \"to\": { \"street\": \"E Florence Ave\", \"postal-code\": \"90001\" }, \"content\": { \"product\": \"PfizerVaccine\", \"description\": \"COVID-19 vaccine\", \"producer\": \"Pfizer\", \"count\": 100, \"start-lot-number\": \"A00001Y\", \"end-lot-number\": \"A00100Y\"}}"}' http://localhost:$(PORT)/shipping/pickuppackage
+	curl -u nlsadm: -X POST -H 'Content-Type: application/json' -d '{"uid":"677e9dcf985c8902","eventTime":"2021-02-12 09:57:25","latitude":40.8077,"longitude":-74.0692,"packageDetail":"{ \"uid\": \"677e9dcf985c8902\", \"sender\": \"John\", \"from\": { \"street\": \"E 16th St.\", \"postal-code\": \"11212\" }, \"recipient\": \"Jane\", \"to\": { \"street\": \"E Florence Ave\", \"postal-code\": \"90001\" }, \"content\": { \"product\": \"PfizerVaccine\", \"description\": \"COVID-19 vaccine\", \"producer\": \"Pfizer\", \"count\": 100, \"start-lot-number\": \"A00001Y\", \"end-lot-number\": \"A00100Y\"}}"}' http://localhost:$(PORT)/shipping/pickuppackage
 	curl -u nlsadm: -X POST -H 'Content-Type: application/json' -d '{"uid":"677e9dcf985c8902","eventTime":"2021-02-12 20:30:25","toCarrier":"SLS","latitude":39.7392,"longitude":-104.9903}' http://localhost:$(PORT)/shipping/transferpackage
 	curl -u slsadm@org2: -X POST -H 'Content-Type: application/json' -d '{"uid":"677e9dcf985c8902","eventTime":"2021-02-12 20:30:40","carrier":"NLS","latitude":39.7392,"longitude":-104.9903}' http://localhost:$(PORT)/shipping/transferpackageack
 	curl -u slsadm@org2: -X POST -H 'Content-Type: application/json' -d '{"uid":"677e9dcf985c8902","eventTime":"2021-02-13 10:30:40","latitude":33.9416,"longitude":-118.4085}' http://localhost:$(PORT)/shipping/deliverpackage
@@ -100,6 +95,5 @@ test:
 	sleep 3
 	echo "query package environment ..."
 	curl -u iot: -X POST -H 'Content-Type: application/json' -d '{"uid":"677e9dcf985c8902"}' http://localhost:$(PORT)/shipping/packageenvironment
-	# use the following to test modified service API for user CA - shipping_rest_fe.json
-	# curl -u nlsadm: -X POST -H 'Content-Type: application/json' -d '{"uid":"677e9dcf985c8902","transactionType":"transfer"}' http://localhost:$(PORT)/shipping/verifytransaction
-	# curl -u iot: -X POST -H 'Content-Type: application/json' -d '{"uid":"677e9dcf985c8902","periodStart":"2021-02-12 21:57:25"}' http://localhost:$(PORT)/shipping/verifytemperature
+	echo "query packages by sender ..."
+	curl -u User1: -X POST -H 'Content-Type: application/json' -d '{"sender":"John"}' http://localhost:$(PORT)/shipping/getpackagesbysender
