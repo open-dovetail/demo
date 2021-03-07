@@ -1,0 +1,1061 @@
+{
+  "info": {
+    "title": "Shipping Network Contract API",
+    "version": "v0.0.1"
+  },
+  "imports": [
+    "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+    "github.com/open-dovetail/fabric-chaincode/activity/get",
+    "github.com/open-dovetail/fabric-chaincode/activity/put",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "contracts": {
+    "shipping-contract": {
+      "name": "Shipping Global",
+      "cid": "alias,carrier,email",
+      "transactions": [{
+          "name": "pickupPackage",
+          "parameters": [{
+              "name": "uid",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "eventTime",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "latitude",
+              "schema": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "longitude",
+              "schema": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "packageDetail",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/transactionKeyValue"
+          },
+          "rules": [{
+            "description": "create package transaction",
+            "actions": [{
+                "activity": "#put",
+                "name": "put_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageTransaction"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "transaction": [
+                      "docType",
+                      "uid",
+                      "transactionType",
+                      "eventTime"
+                    ]
+                  }
+                },
+                "input": {
+                  "schema": {
+                    "data": {
+                      "$ref": "#/components/schemas/transactionKeyValue"
+                    }
+                  },
+                  "mapping": {
+                    "data": {
+                      "key": "=string.concat($flow.parameters.uid, \"pickup\", $flow.parameters.eventTime)",
+                      "value": {
+                        "docType": "packageTransaction",
+                        "uid": "=$flow.parameters.uid",
+                        "transactionType": "pickup",
+                        "eventTime": "=$flow.parameters.eventTime",
+                        "user": "=$flow.cid.alias",
+                        "carrier": "=$flow.cid.carrier",
+                        "latitude": "=$flow.parameters.latitude",
+                        "longitude": "=$flow.parameters.longitude"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#put",
+                "name": "put_2",
+                "ledger": {
+                  "$ref": "#/components/schemas/package"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "sender~uid": [
+                      "sender",
+                      "uid"
+                    ]
+                  }
+                },
+                "input": {
+                  "schema": {
+                    "data": {
+                      "$ref": "#/components/schemas/packageKeyValue"
+                    }
+                  },
+                  "mapping": {
+                    "data": {
+                      "key": "=$flow.parameters.uid",
+                      "value": "=coerce.toObject($flow.parameters.packageDetail)"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[put_1].code",
+                    "message": "=$activity[put_1].message",
+                    "returns": "=$activity[put_1].result[0]"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "deliverPackage",
+          "parameters": [{
+              "name": "uid",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "eventTime",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "latitude",
+              "schema": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "longitude",
+              "schema": {
+                "type": "number"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/transactionKeyValue"
+          },
+          "rules": [{
+            "description": "create package transaction",
+            "actions": [{
+                "activity": "#put",
+                "name": "put_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageTransaction"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "transaction": [
+                      "docType",
+                      "uid",
+                      "transactionType",
+                      "eventTime"
+                    ]
+                  }
+                },
+                "input": {
+                  "schema": {
+                    "data": {
+                      "$ref": "#/components/schemas/transactionKeyValue"
+                    }
+                  },
+                  "mapping": {
+                    "data": {
+                      "key": "=string.concat($flow.parameters.uid, \"deliver\", $flow.parameters.eventTime)",
+                      "value": {
+                        "docType": "packageTransaction",
+                        "uid": "=$flow.parameters.uid",
+                        "transactionType": "deliver",
+                        "eventTime": "=$flow.parameters.eventTime",
+                        "user": "=$flow.cid.alias",
+                        "carrier": "=$flow.cid.carrier",
+                        "latitude": "=$flow.parameters.latitude",
+                        "longitude": "=$flow.parameters.longitude"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[put_1].code",
+                    "message": "=$activity[put_1].message",
+                    "returns": "=$activity[put_1].result[0]"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "transferPackage",
+          "parameters": [{
+              "name": "uid",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "eventTime",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "toCarrier",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "latitude",
+              "schema": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "longitude",
+              "schema": {
+                "type": "number"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/transactionKeyValue"
+          },
+          "rules": [{
+            "description": "create package transaction",
+            "actions": [{
+                "activity": "#put",
+                "name": "put_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageTransaction"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "transaction": [
+                      "docType",
+                      "uid",
+                      "transactionType",
+                      "eventTime"
+                    ]
+                  }
+                },
+                "input": {
+                  "schema": {
+                    "data": {
+                      "$ref": "#/components/schemas/transactionKeyValue"
+                    }
+                  },
+                  "mapping": {
+                    "data": {
+                      "key": "=string.concat($flow.parameters.uid, \"transfer\", $flow.parameters.eventTime)",
+                      "value": {
+                        "docType": "packageTransaction",
+                        "uid": "=$flow.parameters.uid",
+                        "transactionType": "transfer",
+                        "eventTime": "=$flow.parameters.eventTime",
+                        "user": "=$flow.cid.alias",
+                        "carrier": "=$flow.cid.carrier",
+                        "toCarrier": "=$flow.parameters.toCarrier",
+                        "latitude": "=$flow.parameters.latitude",
+                        "longitude": "=$flow.parameters.longitude"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[put_1].code",
+                    "message": "=$activity[put_1].message",
+                    "returns": "=$activity[put_1].result[0]"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "transferPackageAck",
+          "parameters": [{
+              "name": "uid",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "eventTime",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "carrier",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "latitude",
+              "schema": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "longitude",
+              "schema": {
+                "type": "number"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/transactionKeyValue"
+          },
+          "rules": [{
+            "description": "create package transaction",
+            "actions": [{
+                "activity": "#put",
+                "name": "put_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageTransaction"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "transaction": [
+                      "docType",
+                      "uid",
+                      "transactionType",
+                      "eventTime"
+                    ]
+                  }
+                },
+                "input": {
+                  "schema": {
+                    "data": {
+                      "$ref": "#/components/schemas/transactionKeyValue"
+                    }
+                  },
+                  "mapping": {
+                    "data": {
+                      "key": "=string.concat($flow.parameters.uid, \"transferAck\", $flow.parameters.eventTime)",
+                      "value": {
+                        "docType": "packageTransaction",
+                        "uid": "=$flow.parameters.uid",
+                        "transactionType": "transferAck",
+                        "eventTime": "=$flow.parameters.eventTime",
+                        "user": "=$flow.cid.alias",
+                        "carrier": "=$flow.parameters.carrier",
+                        "toCarrier": "=$flow.cid.carrier",
+                        "latitude": "=$flow.parameters.latitude",
+                        "longitude": "=$flow.parameters.longitude"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[put_1].code",
+                    "message": "=$activity[put_1].message",
+                    "returns": "=$activity[put_1].result[0]"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "getPackageByUID",
+          "parameters": [{
+            "name": "uid",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "$ref": "#/components/schemas/package"
+          },
+          "rules": [{
+            "description": "retrieve package by its uid",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/package"
+                },
+                "input": {
+                  "mapping": {
+                    "data": "=$flow.parameters.uid"
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result[0].value"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "getPackagesBySender",
+          "parameters": [{
+            "name": "sender",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/packageKeyValue"
+            }
+          },
+          "rules": [{
+            "description": "retrieve list of packages by specified sender",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/package"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "sender~uid": [
+                      "sender",
+                      "uid"
+                    ]
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "sender": "=$flow.parameters.sender"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "getPackagesByProduct",
+          "parameters": [{
+            "name": "product",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/packageKeyValue"
+            }
+          },
+          "rules": [{
+            "description": "query list of packages by specified product",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/package"
+                },
+                "config": {
+                  "query": {
+                    "selector": {
+                      "content.product": "$product"
+                    }
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "product": "=$flow.parameters.product"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "getPackageTransaction",
+          "parameters": [{
+              "name": "uid",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "transactionType",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/packageTransaction"
+          },
+          "rules": [{
+            "description": "retrieve a transaction of specified package uid and transaction type",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageTransaction"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "transaction": [
+                      "docType",
+                      "uid",
+                      "transactionType",
+                      "eventTime"
+                    ]
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "docType": "packageTransaction",
+                      "uid": "=$flow.parameters.uid",
+                      "transactionType": "=$flow.parameters.transactionType"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result[0].value"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "updateTemperature",
+          "parameters": [{
+              "name": "uid",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "periodStart",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "containerID",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "eventTime",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "minValue",
+              "schema": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "maxValue",
+              "schema": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "inViolation",
+              "schema": {
+                "type": "boolean"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/environmentKeyValue"
+          },
+          "rules": [{
+            "description": "create package environment update",
+            "actions": [{
+                "activity": "#put",
+                "name": "put_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageEnvironment"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "measurement": [
+                      "docType",
+                      "uid",
+                      "measurementType",
+                      "periodStart"
+                    ]
+                  }
+                },
+                "input": {
+                  "schema": {
+                    "data": {
+                      "$ref": "#/components/schemas/environmentKeyValue"
+                    }
+                  },
+                  "mapping": {
+                    "data": {
+                      "key": "=string.concat($flow.parameters.uid, \"temperature\", $flow.parameters.periodStart)",
+                      "value": {
+                        "docType": "packageEnvironment",
+                        "uid": "=$flow.parameters.uid",
+                        "measurementType": "temperature",
+                        "periodStart": "=$flow.parameters.periodStart",
+                        "eventTime": "=$flow.parameters.eventTime",
+                        "containerID": "=$flow.parameters.containerID",
+                        "user": "=$flow.cid.alias",
+                        "minValue": "=$flow.parameters.minValue",
+                        "maxValue": "=$flow.parameters.maxValue",
+                        "inViolation": "=$flow.parameters.inViolation"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[put_1].code",
+                    "message": "=$activity[put_1].message",
+                    "returns": "=$activity[put_1].result[0]"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "getTemperatureByTimestamp",
+          "parameters": [{
+              "name": "uid",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "periodStart",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/packageEnvironment"
+          },
+          "rules": [{
+            "description": "retrieve a temperature measure of specified package uid and period start time",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageEnvironment"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "measurement": [
+                      "docType",
+                      "uid",
+                      "measurementType",
+                      "periodStart"
+                    ]
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "docType": "packageEnvironment",
+                      "uid": "=$flow.parameters.uid",
+                      "measurementType": "temperature",
+                      "periodStart": "=$flow.parameters.periodStart"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result[0].value"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "packageTimeline",
+          "parameters": [{
+            "name": "uid",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/transactionKeyValue"
+            }
+          },
+          "rules": [{
+            "description": "retrieve transactions of specified package uid",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageTransaction"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "transaction": [
+                      "docType",
+                      "uid",
+                      "transactionType",
+                      "eventTime"
+                    ]
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "docType": "packageTransaction",
+                      "uid": "=$flow.parameters.uid"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "packageEnvironment",
+          "parameters": [{
+            "name": "uid",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/environmentKeyValue"
+            }
+          },
+          "rules": [{
+            "description": "retrieve environment updates of specified package uid",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/packageEnvironment"
+                },
+                "config": {
+                  "compositeKeys": {
+                    "measurement": [
+                      "docType",
+                      "uid",
+                      "measurementType",
+                      "periodStart"
+                    ]
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "docType": "packageEnvironment",
+                      "uid": "=$flow.parameters.uid"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result"
+                  }
+                }
+              }
+            ]
+          }]
+        }
+      ]
+    }
+  },
+  "components": {
+    "schemas": {
+      "address": {
+        "$id": "address",
+        "properties": {
+          "street": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state-province": {
+            "type": "string"
+          },
+          "postal-code": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "package": {
+        "$id": "package",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "handling": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "width": {
+            "type": "number"
+          },
+          "depth": {
+            "type": "number"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "from": {
+            "$ref": "#/components/schemas/address"
+          },
+          "to": {
+            "$ref": "#/components/schemas/address"
+          },
+          "content": {
+            "type": "object",
+            "properties": {
+              "product": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "producer": {
+                "type": "string"
+              },
+              "start-lot-number": {
+                "type": "string"
+              },
+              "end-lot-number": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "packageKeyValue": {
+        "$id": "packageKeyValue",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/package"
+          }
+        }
+      },
+
+      "packageTransaction": {
+        "$id": "packageTransaction",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "transactionType": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string"
+          },
+          "docType": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "carrier": {
+            "type": "string"
+          },
+          "toCarrier": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          }
+        }
+      },
+      "transactionKeyValue": {
+        "$id": "transactionKeyValue",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/packageTransaction"
+          }
+        }
+      },
+      "packageEnvironment": {
+        "$id": "packageEnvironment",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string"
+          },
+          "docType": {
+            "type": "string"
+          },
+          "containerID": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string"
+          },
+          "measurementType": {
+            "type": "string"
+          },
+          "minValue": {
+            "type": "number"
+          },
+          "maxValue": {
+            "type": "number"
+          },
+          "inViolation": {
+            "type": "boolean"
+          }
+        }
+      },
+      "environmentKeyValue": {
+        "$id": "environmentKeyValue",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/packageEnvironment"
+          }
+        }
+      }
+    }
+  }
+}
