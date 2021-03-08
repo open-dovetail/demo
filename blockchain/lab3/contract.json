@@ -7,7 +7,6 @@
     "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
     "github.com/open-dovetail/fabric-chaincode/activity/get",
     "github.com/open-dovetail/fabric-chaincode/activity/put",
-    "github.com/open-dovetail/fabric-chaincode/activity/setevent",
     "github.com/project-flogo/contrib/activity/noop",
     "github.com/project-flogo/contrib/activity/actreturn",
     "github.com/project-flogo/flow",
@@ -638,33 +637,6 @@
                         "maxValue": "=$flow.parameters.maxValue",
                         "inViolation": "=$flow.parameters.inViolation"
                       }
-                    }
-                  }
-                }
-              },
-              {
-                "activity": "#setevent",
-                "name": "setevent_1",
-                "input": {
-                  "sample": {
-                    "payload": {
-                      "key": "",
-                      "violationType": "",
-                      "periodStart": "",
-                      "periodEnd": "",
-                      "minValue": 0,
-                      "maxValue": 0
-                    }
-                  },
-                  "mapping": {
-                    "name": "=string.concat($activity[put_1].result[0].value.measurementType, \" violation\")",
-                    "payload": {
-                      "key": "=$activity[put_1].result[0].key",
-                      "violationType": "=$activity[put_1].result[0].value.measurementType",
-                      "periodStart": "=$activity[put_1].result[0].value.periodStart",
-                      "periodEnd": "=$activity[put_1].result[0].value.eventTime",
-                      "minValue": "=$activity[put_1].result[0].value.minValue",
-                      "maxValue": "=$activity[put_1].result[0].value.maxValue"
                     }
                   }
                 }

@@ -101,14 +101,6 @@
                 "ledger": {
                   "$ref": "#/components/schemas/package"
                 },
-                "config": {
-                  "compositeKeys": {
-                    "sender~uid": [
-                      "sender",
-                      "uid"
-                    ]
-                  }
-                },
                 "input": {
                   "schema": {
                     "data": {
@@ -434,57 +426,6 @@
                     "status": "=$activity[get_1].code",
                     "message": "=$activity[get_1].message",
                     "returns": "=$activity[get_1].result[0].value"
-                  }
-                }
-              }
-            ]
-          }]
-        },
-        {
-          "name": "getPackagesBySender",
-          "parameters": [{
-            "name": "sender",
-            "schema": {
-              "type": "string"
-            }
-          }],
-          "returns": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/packageKeyValue"
-            }
-          },
-          "rules": [{
-            "description": "retrieve list of packages by specified sender",
-            "actions": [{
-                "activity": "#get",
-                "name": "get_1",
-                "ledger": {
-                  "$ref": "#/components/schemas/package"
-                },
-                "config": {
-                  "compositeKeys": {
-                    "sender~uid": [
-                      "sender",
-                      "uid"
-                    ]
-                  }
-                },
-                "input": {
-                  "mapping": {
-                    "data": {
-                      "sender": "=$flow.parameters.sender"
-                    }
-                  }
-                }
-              },
-              {
-                "activity": "#actreturn",
-                "input": {
-                  "mapping": {
-                    "status": "=$activity[get_1].code",
-                    "message": "=$activity[get_1].message",
-                    "returns": "=$activity[get_1].result"
                   }
                 }
               }

@@ -492,6 +492,56 @@
           }]
         },
         {
+          "name": "getPackagesByProduct",
+          "parameters": [{
+            "name": "product",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/packageKeyValue"
+            }
+          },
+          "rules": [{
+            "description": "query list of packages by specified product",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/package"
+                },
+                "config": {
+                  "query": {
+                    "selector": {
+                      "content.product": "$product"
+                    }
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "product": "=$flow.parameters.product"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
           "name": "getPackageTransaction",
           "parameters": [{
               "name": "uid",
