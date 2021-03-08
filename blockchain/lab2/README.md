@@ -1,12 +1,12 @@
-# LAB-2: Add transaction to retrieve list of packages by a specified product name
+# LAB-2: Add transaction to retrieve packages by name of contained product
 
 This lab describes how you can add a new blockchain transaction by editing the [contract](./contract.json), and then build and deploy the updated chaincode to the Fabric test-network, and also build an updated HTTP client service that you can submit blockchain requests to.
 
-This new transaction will internally use a Fabric chaincode API [GetQueryResult](https://github.com/hyperledger/fabric-chaincode-go/blob/master/shim/stub.go) to fetch blockchain states returned by a couchDB query. A [CouchDB query](https://docs.couchdb.org/en/latest/api/database/find.html) is a query statement in JSON format that can filter the resultset by any nested elements in a JSON document. Dovetail has made it easy to retrieve blockchain states by a CouchDB query statement, or the so called a `rich query`.
+This new transaction internally uses a Fabric chaincode API [GetQueryResult](https://github.com/hyperledger/fabric-chaincode-go/blob/master/shim/stub.go) to fetch blockchain states returned by a couchDB query. A [CouchDB query](https://docs.couchdb.org/en/latest/api/database/find.html) is a query statement in JSON format that can filter the resultset by the values of nested elements in a JSON document. Dovetail has made it easy to retrieve blockchain states by a CouchDB query statement, or the so called `rich query`.
 
 ## Add new transaction to the smart contract
 
-You can use a JSON file editor, e.g., [vsCode](https://code.visualstudio.com/download) to edit the [contract](./contract.json) as follows, or if you want to quickly see the result, you can copy the [solution](./solution/contract.json) over the `contract.json` in this folder and skip to the next section to build and test it.
+You can use a JSON file editor, e.g., [vsCode](https://code.visualstudio.com/download) to edit the [contract](./contract.json) as follows, or if you want to quickly see the result, you can copy the [solution](./solution/contract.json) over the `contract.json` in this folder and skip to the next section for build and test.
 
 Add the following transaction definition to [contract.json](./contract.json) under the section of `transactions`, e.g., after line 493.
 
@@ -63,9 +63,9 @@ Add the following transaction definition to [contract.json](./contract.json) und
         },
 ```
 
-This new transaction is named as `getPackagesByProduct`, which accepts a parameter `product` and returns an array of `packageKeyValue` that has already been defined under the section `components/schemas`. In the rule actions, a `#get` activity is used to query the blockchain state of `package` ledger by using a rich-query statement that matches the package attribute `content.product` to a specified name of product. The activity input data is mapped to the value of the parameter `product`. The result of the query activity is then mapped to the returned data of the transaction.
+This new transaction is named `getPackagesByProduct`, which accepts a parameter `product` and returns an array of `packageKeyValue` that has already been defined under the section `components/schemas`. In the rule actions, a `#get` activity is used to query the blockchain state of `package` ledger by using a rich-query statement that matches the package attribute `content.product` to a specified product name. The activity input data is mapped to the value of the parameter `product`. The result of the query activity is then mapped to the returned data of the transaction.
 
-To make the query run efficiently, we need to define CouchDB indices as shown under the folder [META-INF](./META-INF), which we have defined the [indexProduct.json](./META-INF/statedb/couchdb/indexes/indexProduct.json) for the new transaction.
+To make the query run efficiently, we need to define CouchDB indices as shown under the folder [META-INF](./META-INF), which we have defined [indexProduct.json](./META-INF/statedb/couchdb/indexes/indexProduct.json) for the new transaction.
 
 ## Build and test the new transaction
 
@@ -110,7 +110,7 @@ The HTTP requests for invoking blockchain transactions are listed in the [Makefi
 curl -u User1: -X POST -H 'Content-Type: application/json' -d '{"product":"PfizerVaccine"}' http://localhost:$(PORT)/shipping/getpackagesbyproduct
 ```
 
-Execute the tests on the HTTP client service using the following command
+Execute the tests for the HTTP client service using the following command
 
 ```bash
 make test

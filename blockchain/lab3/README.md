@@ -2,11 +2,11 @@
 
 This lab describes how you can add chaincode events to blockchain transactions by editing the [contract](./contract.json), and then build and deploy the updated chaincode to the Fabric test-network.
 
-The transaction `updateTemperature` will be edited such that an event will be emitted for IoT measurements that violated the temperature threshold of the contained product. An event listener can monitor the committed blocks and act on the emitted chaincode events. This new event activity internally uses a Fabric chaincode API [SetEvent](https://github.com/hyperledger/fabric-chaincode-go/blob/master/shim/stub.go) to define the event name and payload schema. Dovetail has made it easy to define and create chaincode events.
+The transaction `updateTemperature` will be edited such that an event will be emitted for IoT measurements that violated the temperature threshold of the contained product. An event listener can monitor the committed blockchain blocks and act on the received events. This new event activity internally uses a Fabric chaincode API [SetEvent](https://github.com/hyperledger/fabric-chaincode-go/blob/master/shim/stub.go) to define the event name and payload data schema. Dovetail has made it easy to define and create chaincode events.
 
 ## Add new event activity to the smart contract
 
-You can use a JSON file editor, e.g., [vsCode](https://code.visualstudio.com/download) to edit the [contract](./contract.json) as follows, or if you want to quickly see the result, you can copy the [solution](./solution/contract.json) over the `contract.json` in this folder and skip to the next section to build and test it.
+You can use a JSON file editor, e.g., [vsCode](https://code.visualstudio.com/download) to edit the [contract](./contract.json) as follows, or if you want to quickly see the result, you can copy the [solution](./solution/contract.json) over the `contract.json` in this folder and skip to the next section for build and test.
 
 Chaincode events are implemented by a Flogo activity [setevent](https://github.com/open-dovetail/fabric-chaincode/tree/master/activity/setevent), so first add the following line to the `imports` section of the [contract](./contract.json), e.g., on line 10.
 
@@ -66,7 +66,7 @@ make cc-test
 
 ## Browse blockchain by using blockchain-explorer
 
-You can use the Hyperledger [blockchain explorer](https://github.com/hyperledger/blockchain-explorer) to view the blockchain transactions. Use the following command to start the explorer service.
+You can use the Hyperledger [blockchain explorer](https://github.com/hyperledger/blockchain-explorer) to view blockchain transactions. Use the following command to start the explorer service.
 
 ```bash
 make start-explorer
