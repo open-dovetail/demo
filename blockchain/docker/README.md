@@ -1,12 +1,12 @@
 # Build Blockchain Contract Using Prebuilt Docker Image
 
-For developers who is interested in quick startup with Dovetail applications without setting up local development environment, the following steps illustrates the build and test process by using prebuilt Docker images.
+For developers who are interested in quick startup with Dovetail applications without setting up local development environment, the following steps illustrate the build and test process by using prebuilt Docker images.
 
 ## Install Docker and Hyperledger Fabric test-network
 
 Follow the instructions of <https://docs.docker.com/get-docker/> to install Docker and docker compose.
 
-Install the following version of Hyperledger Fabric test-network in an empty open-dovetail folder:
+Install the following version of Hyperledger Fabric test-network in an empty `open-dovetail` folder:
 
 ```bash
 mkdir -p open-dovetail/hyperledger
@@ -25,7 +25,7 @@ git clone https://github.com/open-dovetail/demo.git
 
 ## Build contract chaincode and services
 
-The demo contract [shipping-contract.json](./contract/shipping-contract.json) is the only artifact for this demo application, which is used to generate deployable chaincode package for Hyperledger Fabric, as well as a service application that provide REST APIs for receiving blockchain requests.
+The demo contract [shipping-contract.json](./contract/shipping-contract.json) is the only artifact for this demo application, which is used to generate deployable chaincode package for Hyperledger Fabric, as well as a service application that provides REST APIs for blockchain transactions.
 
 ```bash
 cd open-dovetail/demo/blockchain/docker
@@ -54,7 +54,7 @@ docker exec dovetail bash -c './contract-to-rest contract/shipping-contract.json
 docker exec dovetail bash -c 'GOOS=darwin GOARCH=amd64 ./build-app contract/shipping_rest.json'
 ```
 
-The REST service must be built for a specified Hyperledger Fabric network, which are defined by `config.yaml` and optionally `entity_matchers.yaml` for local networks. When the configuration files are not specified, it is built using the local test-network config files in <https://github.com/open-dovetail/fabric-client/tree/master/test-network>. The above command builds an REST service executable for Mac. The environment variables `GOOS` and `GOARCH` must be changed accordingly for other platforms.
+The REST service must be built for a specified Hyperledger Fabric network, which are defined by `config.yaml` and optionally `entity_matchers.yaml` for local networks. When the configuration files are not specified, it is built using the local test-network config files in <https://github.com/open-dovetail/fabric-client/tree/master/test-network>. The above command builds a REST service executable for Mac. The environment variables `GOOS` and `GOARCH` must be changed accordingly for other platforms.
 
 ## View or edit Flogo model using Flogo-UI
 
@@ -66,9 +66,9 @@ Use the following command to start the Flogo UI service that is pre-configured w
 docker run -it -p 3303:3303 yxuco/flogo-ui eula-accept
 ```
 
-Open the UI <http://localhost:3303> in a web browser, and import the models `shipping.json` and `shipping_rest.json` to view or edit. Export the models if they are edited.
+Open the UI <http://localhost:3303> in a web browser, and import the models `shipping.json` and `shipping_rest.json` to view or edit. Export the models once they are edited.
 
-## Deploy chaincode to test-network and run on-network smoke test
+## Deploy chaincode to test-network and execute on-network smoke test
 
 ```bash
 make deploy
@@ -92,7 +92,7 @@ make run
 make test
 ```
 
-The step `make run` would start the REST service with important environment variables that specify listen port, chaincode, user crypto and authorization, and HTTP CORS support etc.
+The step `make run` would start the REST service with important environment variables that specify service port, chaincode, user crypto and authorization, and HTTP CORS support etc.
 
 The step `make test` executes end-to-end tests by using the HTTP requests in the [Makefile](./Makefile).
 

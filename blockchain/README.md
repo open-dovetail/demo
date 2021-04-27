@@ -1,6 +1,6 @@
 # Blockchain Component
 
-This folder contains the blockchain smart contract for the `Global logistics Services Demo`. We build and deploy the contract on the Hyperledger Fabric test-network, and generate a rest service for other demo components to invoke the contract transactions, all without any code.
+This folder contains the blockchain smart contract for the `Global logistics Services Demo`. We build and deploy the contract on the Hyperledger Fabric test-network, and generate a rest service that other demo components can use to invoke the contract transactions, all without any code.
 
 If you have not setup the local development environment, you can follow the instructions in [README.md](docker/README.md) to quickly build and test the blockchain transactions.
 
@@ -23,19 +23,19 @@ Refer to the [Makefile](./Makefile) for details of these commands, which are exp
 The step `make build` uses the following scripts to build a package `shipping_cc_1.0.tar.gz` that can be deployed in a Hyperledger Fabric network.
 
 ```bash
-# generate flogo model shipping.json from contract.json
+# generate flogo model for chaincode - shipping.json
 flogo contract2flow -e -c contract.json -o shipping.json
-# build model shipping.json and package it for deployment to Hyperledger Fabric
+# compile model shipping.json and package it for deployment to Hyperledger Fabric
 /path/to/fabric-chaincode/scripts/build.sh shipping.json shipping_cc
 ```
 
-The generated Flogo model `shipping.json` can be edited visually by using a Flogo UI with more detailed data mapping if it is not fully specified in the `contract.json`. The modified model can then be exported and compiled using the above command.
+The generated Flogo model `shipping.json` can be edited visually by using a Flogo UI, e.g., to provide more detailed data mapping if it is not fully specified in `contract.json`. The modified model can then be exported and compiled using the above command.
 
 The step `make deploy` copies the contract package `shipping_cc_1.0.tar.gz` and test scripts to the Hyperledger Fabric test-network.
 
 The step `make start` executes Hyperledger Fabric commands to start a local test-network.
 
-The step `make cc-init` executes the Hyperledger Fabric scripts of [cc-init.sh](./cc-init.sh) to install, approve, and commit the contract package `shipping_cc_1.0.tar.gz` on the test-network.
+The step `make cc-init` executes the Hyperledger Fabric scripts [cc-init.sh](./cc-init.sh) to install, approve, and commit the contract package `shipping_cc_1.0.tar.gz` on the test-network.
 
 ## On-network smoke test
 
@@ -55,24 +55,24 @@ make build-client
 make run
 ```
 
-The step `make build-client` uses the following scripts to build an executable `shipping_rest_app` that supports REST APIs for invoking blockchain transactions defined in [contract.json](./contract.json).
+The step `make build-client` uses the following scripts to build an executable `shipping_rest_app` that implements REST APIs for invoking blockchain transactions as defined in [contract.json](./contract.json).
 
 ```bash
-# generate flogo model shipping_rest.json from contract.json
+# generate flogo model for REST app - shipping_rest.json
 flogo contract2rest -e -c contract.json -o shipping_rest.json
-# build model shipping_rest.json into an executable for the local platform
+# compile model shipping_rest.json into an executable for the local platform
 /path/to/fabric-client/scripts/build.sh shipping_rest.json config.yaml local_entity_matchers.yaml
 ```
 
-The generated Flogo model `shipping_rest.json` can be edited visually by using a Flogo UI to add or update REST APIs that differ from the generated interface. The modified model can then be exported and compiled using the above command. For example, this demo service uses a modified model [shipping_rest_fe.json](./shipping_rest_fe.json) that supports two additional APIs for signature verifications. Use the command `make client-rest` to build the modified REST service.
+The generated Flogo model `shipping_rest.json` can be edited visually by using a Flogo UI, e.g., to add or update REST APIs that differ from the generated interface. The modified model can then be exported and compiled using the above command. For example, this demo service uses a modified model [shipping_rest_fe.json](./shipping_rest_fe.json) that implements two additional APIs for signature verifications. Use the command `make client-rest` to build the modified REST service.
 
 The REST service must be built for a specified Hyperledger Fabric network, which are defined by `config.yaml` and optionally `entity_matchers.yaml` for local networks. We use the network configuration for a local test-network, which can be found in <https://github.com/open-dovetail/fabric-client/tree/master/test-network>. To build an executable for a different platform, you can specify the platform in environment variables for the build step, e.g., `GOOS=darwin GOARCH=amd64 ./build.sh shipping_rest.json ...`, which would build an executable for Mac.
 
-The step `make run` would start the REST service with important environment variables that specify listen port, chaincode, user crypto and authorization, and HTTP CORS support etc.
+The step `make run` would start the REST service with important environment variables that specify service port, chaincode, user crypto and authorization, and HTTP CORS support, etc.
 
 ## Test REST service
 
-The [Makefile](./Makefile) contains HTTP requests for invoking contract transactions via the REST service. Thus, you can run end-to-end blockchain tests by using the following command:
+The [Makefile](./Makefile) contains HTTP requests for invoking contract transactions via the REST service. You can use these requets for end-to-end blockchain tests, i.e.,
 
 ```bash
 make test
@@ -80,4 +80,4 @@ make test
 
 ## Shutdown
 
-To cleanup all the demo processes, you can find and kill the REST service app, and execute `make shutdown` to shutdown the test-network of Hyperledger Fabric.
+To cleanup all the demo processes, you can find and kill the REST service app, and then execute `make shutdown` to stop and cleanup the Hyperledger Fabric test-network.
