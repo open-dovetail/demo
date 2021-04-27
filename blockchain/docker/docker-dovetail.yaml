@@ -1,0 +1,17 @@
+version: '2'
+services:
+  dovetail:
+    container_name: dovetail
+    image: yxuco/dovetail:v1.0.0
+    #image: hyperledger/fabric-tools:2.2
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/go
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - WORK=/root/work
+    working_dir: /root
+    command: /bin/bash
+    volumes:
+      - /var/run/:/host/var/run/
+      - .:/root/work/:cached

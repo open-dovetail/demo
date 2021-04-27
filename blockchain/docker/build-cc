@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Usage:
+#   ./build-cc model-file [ cc-name [ cc-version ] ]
+# e.g.
+#   ./build-cc marble/marble.json
+
+if [ -d "$HOME/fabric-chaincode/work" ]; then
+  rm -Rf $HOME/fabric-chaincode/work
+fi
+mkdir -p $HOME/fabric-chaincode/work
+
+src=$WORK/$1
+cp $src $HOME/fabric-chaincode/work
+model=${src##*/}
+meta=$(dirname $src)/META-INF
+if [ -d $meta ]; then
+  cp -R $meta $HOME/fabric-chaincode/work
+fi
+
+cd $HOME/fabric-chaincode/work
+$HOME/fabric-chaincode/scripts/build.sh $model $2 $3 
+
+pkg=$(ls $HOME/fabric-chaincode/work/*.gz)
+if [ -f $pkg ]; then
+  cp $pkg $(dirname $src)
+else
+  echo "failed to build chaincode package"
+  exit 1
+fi

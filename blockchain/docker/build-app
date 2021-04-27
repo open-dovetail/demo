@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Usage:
+#   ./build-app model-file [ network-config [ entity-match-file ] ]
+# e.g.
+#   GOOS=darwin GOARCH=amd64 ./build-app marble/marble.json
+
+# to build for mac, e.g., set GOOS=darwin GOARCH=amd64
+if [ ! -z "$GOOS" ]; then
+  echo "build app for $GOOS $GOARCH"
+fi
+
+if [ -d "$HOME/fabric-client/work" ]; then
+  rm -Rf $HOME/fabric-client/work
+fi
+mkdir -p $HOME/fabric-client/work
+
+src=$WORK/$1
+cp $src $HOME/fabric-client/work
+model=${src##*/}
+network=$HOME/fabric-client/test-network/config.yaml
+matcher=$HOME/fabric-client/test-network/local_entity_matchers.yaml
+if [ "$#" -gt 1 ] && [ ! -z "$2" ] && [ ! -f "$WORK/$2" ]; then
+  network=$WORK/$2
+  matcher=""
+fi
+if [ "$#" -gt 2 ] && [ ! -z "$3" ] && [ ! -f "$WORK/$3" ]; then
+  matcher=$WORK/$3
+fi
+echo "use entity matcher $matcher"
+
+cd $HOME/fabric-client/work
+$HOME/fabric-client/scripts/build.sh $model $network $matcher 
+
+app=$(ls $HOME/fabric-client/work/*_app)
+if [ -f $app ]; then
+  cp $app $(dirname $src)
+else
+  echo "failed to build app"
+  exit 1
+fi

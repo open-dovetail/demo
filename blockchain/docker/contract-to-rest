@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Usage:
+#   ./contract-to-rest contract-file [ model-file [ fe ] ]
+# e.g.
+#   ./contract-to-rest contract/sample-contract.json
+
+if [ -d "$HOME/fabric-client/work" ]; then
+  rm -Rf $HOME/fabric-client/work
+fi
+mkdir -p $HOME/fabric-client/work
+
+src=$WORK/$1
+cp $src $HOME/fabric-client/work
+contract=${src##*/}
+if [ "$#" -gt 1 ] && [ ! -z "$2" ]; then
+  model=$2
+else
+  model="${contract%.*}_rest.json"
+fi
+fe=""
+if [ "$#" -gt 2 ] && [ ! -z "$3" ]; then
+  fe="-e"
+fi
+
+cd $HOME/fabric-client/work
+flogo contract2rest $fe -c $contract -o $model
+
+if [ -f $model ]; then
+  cp $model $(dirname $src)
+else
+  echo "failed to generate flogo rest model"
+  exit 1
+fi

@@ -1,0 +1,1631 @@
+{
+  "name": "marble",
+  "type": "flogo:app",
+  "version": "0.0.1",
+  "appModel": "1.1.0",
+  "description": "",
+  "imports": [
+    "github.com/open-dovetail/fabric-chaincode/activity/delete",
+    "github.com/open-dovetail/fabric-chaincode/activity/get",
+    "github.com/open-dovetail/fabric-chaincode/activity/put",
+    "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/activity/log",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/flow"
+  ],
+  "triggers": [{
+    "id": "fabric_transaction",
+    "ref": "#transaction",
+    "name": "FabricTransaction",
+    "description": "This trigger executes a Hyperledger Fabric transaction",
+    "settings": {
+      "cid": "alias,role,email"
+    },
+    "handlers": [{
+        "settings": {
+          "name": "delete",
+          "parameters": "name"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:delete_marble"
+          },
+          "input": {
+            "name": "=$.parameters.name"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "getHistory",
+          "parameters": "name"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:get_history"
+          },
+          "input": {
+            "name": "=$.parameters.name"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "getMarblesByRange",
+          "parameters": "startKey,endKey"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:get_marbles_by_range"
+          },
+          "input": {
+            "endKey": "=$.parameters.endKey",
+            "startKey": "=$.parameters.startKey"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "getMarblesByRangeWithPagination",
+          "parameters": "startKey,endKey,pageSize:0,bookmark"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:get_marbles_by_range_with_pagination"
+          },
+          "input": {
+            "bookmark": "=$.parameters.bookmark",
+            "endKey": "=$.parameters.endKey",
+            "pageSize": "=$.parameters.pageSize",
+            "startKey": "=$.parameters.startKey"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "initMarble",
+          "parameters": "name,color,size:0,owner"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:init_marble"
+          },
+          "input": {
+            "parameters": "=$.parameters"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "queryLargeMarblesWithPagination",
+          "parameters": "size:0,pageSize:0,bookmark"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:query_large_marbles_with_pagination"
+          },
+          "input": {
+            "bookmark": "=$.parameters.bookmark",
+            "pageSize": "=$.parameters.pageSize",
+            "size": "=$.parameters.size"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "queryMarblesByOwner",
+          "parameters": "owner"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:query_marbles_by_owner"
+          },
+          "input": {
+            "owner": "=$.parameters.owner"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "readMarble",
+          "parameters": "name"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:read_marble"
+          },
+          "input": {
+            "name": "=$.parameters.name"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "transferMarble",
+          "parameters": "name,newOwner"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:transfer_marble"
+          },
+          "input": {
+            "name": "=$.parameters.name",
+            "newOwner": "=$.parameters.newOwner"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      },
+      {
+        "settings": {
+          "name": "transferMarblesBasedOnColor",
+          "parameters": "color,newOwner"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:transfer_marbles_based_on_color"
+          },
+          "input": {
+            "color": "=$.parameters.color",
+            "newOwner": "=$.parameters.newOwner"
+          },
+          "output": {
+            "message": "=$.message",
+            "returns": "=$.returns",
+            "status": "=$.status"
+          }
+        }
+      }
+    ]
+  }],
+  "resources": [{
+      "id": "flow:init_marble",
+      "data": {
+        "name": "initMarble",
+        "description": "create new marble on the ledger",
+        "metadata": {
+          "input": [{
+            "name": "parameters",
+            "type": "object"
+          }],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Log request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"initMarble with parameters \", coerce.toString($flow.parameters), \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "put_5",
+            "name": "Put",
+            "description": "This activity stores data to fabric ledger",
+            "activity": {
+              "ref": "#put",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "key": "=$flow.parameters.name",
+                    "value": {
+                      "docType": "marble",
+                      "name": "=$flow.parameters.name",
+                      "color": "=$flow.parameters.color",
+                      "size": "=$flow.parameters.size",
+                      "owner": "=$flow.parameters.owner"
+                    }
+                  }
+                }
+              },
+              "settings": {
+                "compositeKeys": {
+                  "mapping": {
+                    "owner~name": [
+                      "docType",
+                      "owner",
+                      "name"
+                    ],
+                    "color~name": [
+                      "docType",
+                      "color",
+                      "name"
+                    ]
+                  }
+                },
+                "createOnly": true
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogPut",
+            "description": "Log Put result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[PUT] \", $activity[put_5].code, \" - \", $activity[put_5].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_6",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[put_5].code",
+                  "message": "=$activity[put_5].message",
+                  "returns": "=$activity[put_5].result"
+                }
+              }
+            }
+          },
+          {
+            "id": "actreturn_7",
+            "name": "ReturnNoAuth",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": 403,
+                  "message": "=string.concat($flow.cid.cn, \" is not authorized to create marble\")"
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "put_5",
+            "type": "expression",
+            "value": "$flow.cid.role == \"broker\""
+          },
+          {
+            "from": "put_5",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_6"
+          },
+          {
+            "from": "log_2",
+            "to": "actreturn_7",
+            "type": "expression",
+            "value": "$flow.cid.role != \"broker\""
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:read_marble",
+      "data": {
+        "name": "readMarble",
+        "description": "retrieve a marble by name",
+        "metadata": {
+          "input": [{
+            "name": "name",
+            "type": "string"
+          }],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameter",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"readMarble by name \", $flow.name, \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "get_3",
+            "name": "Get",
+            "description": "Get marble by name",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "data": "=$flow.name"
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogGet",
+            "description": "Logs Get result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[GET] \", $activity[get_3].code, \" - \", $activity[get_3].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_5",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[get_3].code",
+                  "message": "=$activity[get_3].message",
+                  "returns": "=$activity[get_3].result"
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "get_3"
+          },
+          {
+            "from": "get_3",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_5"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:delete_marble",
+      "data": {
+        "name": "deleteMarble",
+        "description": "delete a marble of specified name from the ledger",
+        "metadata": {
+          "input": [{
+            "name": "name",
+            "type": "string"
+          }],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"deleteMarble by name \", $flow.name, \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "delete_3",
+            "name": "Delete",
+            "description": "delete a marble as well as associated composite keys by name",
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "data": "=$flow.name"
+              },
+              "settings": {
+                "compositeKeys": {
+                  "mapping": {
+                    "owner~name": [
+                      "docType",
+                      "owner",
+                      "name"
+                    ],
+                    "color~name": [
+                      "docType",
+                      "color",
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogDelete",
+            "description": "Logs Delete result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[DELETE] \", $activity[delete_3].code, \" - \", $activity[delete_3].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_5",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[delete_3].code",
+                  "message": "=$activity[delete_3].message",
+                  "returns": "=$activity[delete_3].result"
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "delete_3"
+          },
+          {
+            "from": "delete_3",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_5"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:transfer_marble",
+      "data": {
+        "name": "TransferMarble",
+        "description": "transfer ownership of a marble",
+        "metadata": {
+          "input": [{
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "newOwner",
+              "type": "string"
+            }
+          ],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"transferOwner of name \", $flow.name, \" to newOwner \", $flow.newOwner, \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "get_3",
+            "name": "Get",
+            "description": "Get marble by name",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "data": "=$flow.name"
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogGet",
+            "description": "Logs Get result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[GET] \", $activity[get_3].code, \" - \", $activity[get_3].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "delete_6",
+            "name": "DeleteKey",
+            "description": "delete old owner composite key",
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "docType": "=$activity[get_3].result[0].value.docType",
+                    "name": "=$activity[get_3].result[0].value.name",
+                    "owner": "=$activity[get_3].result[0].value.owner"
+                  }
+                }
+              },
+              "settings": {
+                "compositeKeys": {
+                  "mapping": {
+                    "owner~name": [
+                      "docType",
+                      "owner",
+                      "name"
+                    ]
+                  }
+                },
+                "keysOnly": true
+              }
+            }
+          },
+          {
+            "id": "log_7",
+            "name": "LogDelete",
+            "description": "Logs Delete result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[DELETE] \", $activity[delete_6].code, \" - \", $activity[delete_6].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "put_5",
+            "name": "Put",
+            "description": "This activity stores data to fabric ledger",
+            "activity": {
+              "ref": "#put",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "key": "=$flow.name",
+                    "value": {
+                      "docType": "=$activity[get_3].result[0].value.docType",
+                      "name": "=$activity[get_3].result[0].value.name",
+                      "color": "=$activity[get_3].result[0].value.color",
+                      "size": "=$activity[get_3].result[0].value.size",
+                      "owner": "=$flow.newOwner"
+                    }
+                  }
+                }
+              },
+              "settings": {
+                "compositeKeys": {
+                  "mapping": {
+                    "owner~name": [
+                      "docType",
+                      "owner",
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_8",
+            "name": "LogPut",
+            "description": "Logs Put result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[PUT] \", $activity[put_5].code, \" - \", $activity[put_5].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_9",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[put_5].code",
+                  "message": "=$activity[put_5].message",
+                  "returns": "=$activity[put_5].result"
+                }
+              }
+            }
+          },
+          {
+            "id": "actreturn_10",
+            "name": "ReturnNotFound",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": 404,
+                  "message": "=string.concat(\"Marble of name \", $flow.name, \" is not found\")"
+                }
+              }
+            }
+          },
+          {
+            "id": "actreturn_11",
+            "name": "ReturnNoAuth",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": 403,
+                  "message": "=string.concat($flow.cid.cn, \" is not the owner of \", $flow.name)"
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "get_3"
+          },
+          {
+            "from": "get_3",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "delete_6",
+            "type": "expression",
+            "value": "$activity[get_3].code == 200 && $flow.cid.alias == $activity[get_3].result[0].value.owner"
+          },
+          {
+            "from": "delete_6",
+            "to": "log_7"
+          },
+          {
+            "from": "log_7",
+            "to": "put_5"
+          },
+          {
+            "from": "put_5",
+            "to": "log_8"
+          },
+          {
+            "from": "log_8",
+            "to": "actreturn_9"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_10",
+            "type": "expression",
+            "value": "$activity[get_3].code != 200"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_11",
+            "type": "expression",
+            "value": "$activity[get_3].code == 200 && $flow.cid.alias != $activity[get_3].result[0].value.owner"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:get_marbles_by_range",
+      "data": {
+        "name": "GetMarblesByRange",
+        "description": "range query between 2 state keys",
+        "metadata": {
+          "input": [{
+              "name": "startKey",
+              "type": "string"
+            },
+            {
+              "name": "endKey",
+              "type": "string"
+            }
+          ],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"getMarblesByRange [\", $flow.startKey, \", \", $flow.endKey, \") by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "get_3",
+            "name": "GetRange",
+            "description": "Get data in range of state key",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "start": "=$flow.startKey",
+                    "end": "=$flow.endKey"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogGet",
+            "description": "Logs result of Get Range",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[GET] \", $activity[get_3].code, \" - \", $activity[get_3].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_5",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[get_3].code",
+                  "message": "=$activity[get_3].message",
+                  "returns": "=$activity[get_3].result"
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "get_3"
+          },
+          {
+            "from": "get_3",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_5"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:transfer_marbles_based_on_color",
+      "data": {
+        "name": "TransferMarblesBasedOnColor",
+        "description": "transfer marbles of a given color to a new owner",
+        "metadata": {
+          "input": [{
+              "name": "color",
+              "type": "string"
+            },
+            {
+              "name": "newOwner",
+              "type": "string"
+            }
+          ],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"transferMarbles of color \", $flow.color, \" to new owner \", $flow.newOwner, \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "get_11",
+            "name": "GetByColor",
+            "description": "This activity retrieves data from fabric ledger or private data collection",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "docType": "marble",
+                    "color": "=$flow.color"
+                  }
+                }
+              },
+              "settings": {
+                "compositeKeys": {
+                  "mapping": {
+                    "color~name": [
+                      "docType",
+                      "color",
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogGet",
+            "description": "Logs partial key query result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[GET] \", $activity[get_11].code, \" - \", $activity[get_11].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "delete_6",
+            "name": "Delete",
+            "description": "delete old composite key for owner",
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "@foreach($activity[get_11].result)": {
+                      "docType": "=$loop.value.docType",
+                      "name": "=$loop.value.name",
+                      "owner": "=$loop.value.owner"
+                    }
+                  }
+                }
+              },
+              "settings": {
+                "compositeKeys": {
+                  "mapping": {
+                    "owner~name": [
+                      "docType",
+                      "owner",
+                      "name"
+                    ]
+                  }
+                },
+                "keysOnly": true
+              }
+            }
+          },
+          {
+            "id": "log_7",
+            "name": "LogDelete",
+            "description": "Logs result of partial key delete",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[DELETE] \", $activity[delete_6].code, \" - \", $activity[delete_6].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "put_5",
+            "name": "Put",
+            "description": "update marble owner and composite keys for owner",
+            "activity": {
+              "ref": "#put",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "@foreach($activity[get_11].result)": {
+                      "key": "=$loop.key",
+                      "value": {
+                        "docType": "=$loop.value.docType",
+                        "name": "=$loop.value.name",
+                        "color": "=$loop.value.color",
+                        "size": "=$loop.value.size",
+                        "owner": "=$flow.newOwner"
+                      }
+                    }
+                  }
+                }
+              },
+              "settings": {
+                "compositeKeys": {
+                  "mapping": {
+                    "owner~name": [
+                      "docType",
+                      "owner",
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_10",
+            "name": "LogPut",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[PUT] \", $activity[put_5].code, \" - \", $activity[put_5].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_8",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[put_5].code",
+                  "message": "=$activity[put_5].message",
+                  "returns": "=$activity[put_5].result"
+                }
+              }
+            }
+          },
+          {
+            "id": "actreturn_9",
+            "name": "ReturnNotFound",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "message": "=string.concat(\"Marbles of color \", $flow.color, \" not found\")",
+                  "status": 404
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "get_11"
+          },
+          {
+            "from": "get_11",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "delete_6",
+            "type": "expression",
+            "value": "$activity[get_11].code < 300"
+          },
+          {
+            "from": "delete_6",
+            "to": "log_7"
+          },
+          {
+            "from": "log_7",
+            "to": "put_5"
+          },
+          {
+            "from": "put_5",
+            "to": "log_10"
+          },
+          {
+            "from": "log_10",
+            "to": "actreturn_8"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_9",
+            "type": "expression",
+            "value": "$activity[get_11].code >= 300"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:query_marbles_by_owner",
+      "data": {
+        "name": "QueryMarblesByOwner",
+        "description": "rich query to retrieve marbles of given owner",
+        "metadata": {
+          "input": [{
+            "name": "owner",
+            "type": "string"
+          }],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"queryMarbles by owner \", $flow.owner, \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "get_3",
+            "name": "GetByQuery",
+            "description": "rich query to fetch marbles of a owner",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "owner": "=$flow.owner"
+                  }
+                }
+              },
+              "settings": {
+                "query": {
+                  "mapping": {
+                    "selector": {
+                      "docType": "marble",
+                      "owner": "$owner"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogGet",
+            "description": "Logs query result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[GET] \", $activity[get_3].code, \" - \", $activity[get_3].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_5",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[get_3].code",
+                  "message": "=$activity[get_3].message",
+                  "returns": "=$activity[get_3].result"
+                }
+              }
+            }
+          },
+          {
+            "id": "actreturn_6",
+            "name": "ReturnNoAuth",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": 403,
+                  "message": "=string.concat($flow.cid.cn, \" is not authorized to view marbles of owner \", $flow.owner)"
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "get_3",
+            "type": "expression",
+            "value": "$flow.cid.role != \"owner\" || $flow.cid.alias == $flow.owner"
+          },
+          {
+            "from": "get_3",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_5"
+          },
+          {
+            "from": "log_2",
+            "to": "actreturn_6",
+            "type": "expression",
+            "value": "$flow.cid.role == \"owner\" && $flow.cid.alias != $flow.owner"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:get_marbles_by_range_with_pagination",
+      "data": {
+        "name": "GetMarblesByRangeWithPagination",
+        "description": "perform a range query with pagination",
+        "metadata": {
+          "input": [{
+              "name": "startKey",
+              "type": "string"
+            },
+            {
+              "name": "endKey",
+              "type": "string"
+            },
+            {
+              "name": "pageSize",
+              "type": "integer"
+            },
+            {
+              "name": "bookmark",
+              "type": "string"
+            }
+          ],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"getMarbles by range [\", $flow.startKey, \",\", $flow.endKey, \" pageSize \", $flow.pageSize, \" bookmark \", $flow.bookmark, \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "get_3",
+            "name": "Get",
+            "description": "get by range with pagination",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "start": "=$flow.startKey",
+                    "end": "=$flow.endKey"
+                  }
+                },
+                "pageSize": "=$flow.pageSize",
+                "bookmark": "=$flow.bookmark"
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogGet",
+            "description": "Logs Get result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[GET] \", $activity[get_3].code, \" - \", $activity[get_3].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_6",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[get_3].code",
+                  "message": "=$activity[get_3].message",
+                  "returns": {
+                    "mapping": {
+                      "bookmark": "=$activity[get_3].bookmark",
+                      "result": "=$activity[get_3].result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "get_3"
+          },
+          {
+            "from": "get_3",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_6"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:query_large_marbles_with_pagination",
+      "data": {
+        "name": "QueryLargeMarblesWithPagination",
+        "description": "rich query to retrieve large marbles with pagination",
+        "metadata": {
+          "input": [{
+              "name": "size",
+              "type": "integer"
+            },
+            {
+              "name": "pageSize",
+              "type": "integer"
+            },
+            {
+              "name": "bookmark",
+              "type": "string"
+            }
+          ],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"queryLargeMarbles of size greater than \", $flow.size, \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "get_3",
+            "name": "Get",
+            "description": "query large marbles",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "size": "=$flow.size"
+                  }
+                },
+                "pageSize": "=$flow.pageSize",
+                "bookmark": "=$flow.bookmark"
+              },
+              "settings": {
+                "query": {
+                  "mapping": {
+                    "selector": {
+                      "docType": "marble",
+                      "size": {
+                        "$gt": "$size"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogGet",
+            "description": "Logs query result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[GET] \", $activity[get_3].code, \" - \", $activity[get_3].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_6",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[get_3].code",
+                  "message": "=$activity[get_3].message",
+                  "returns": {
+                    "mapping": {
+                      "bookmark": "=$activity[get_3].bookmark",
+                      "result": "=$activity[get_3].result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "get_3"
+          },
+          {
+            "from": "get_3",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_6"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:get_history",
+      "data": {
+        "name": "GetHistory",
+        "description": "retrieve history of a given marble",
+        "metadata": {
+          "input": [{
+            "name": "name",
+            "type": "string"
+          }],
+          "output": [{
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [{
+            "id": "log_2",
+            "name": "LogReq",
+            "description": "Logs request parameters",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"get history of marble \", $flow.name, \" by client \", coerce.toString($flow.cid))",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "get_6",
+            "name": "GetHistory",
+            "description": "This activity retrieves data from fabric ledger or private data collection",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "data": "=$flow.name"
+              },
+              "settings": {
+                "history": true
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "LogHistory",
+            "description": "Logs result of Get history",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[HISTORY] \", $activity[get_6].code, \" - \", $activity[get_6].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_5",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[get_6].code",
+                  "message": "=$activity[get_6].message",
+                  "returns": "=$activity[get_6].result"
+                }
+              }
+            }
+          }
+        ],
+        "links": [{
+            "from": "log_2",
+            "to": "get_6"
+          },
+          {
+            "from": "get_6",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_5"
+          }
+        ]
+      }
+    }
+  ]
+}
